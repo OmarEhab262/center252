@@ -1,0 +1,266 @@
+@import "tailwindcss";
+
+@theme {
+  --font-cairo: "Cairo", sans-serif;
+}
+body {
+  font-family: "Cairo", sans-serif;
+}
+/* Date Input */
+
+.date-input {
+  width: 100%;
+
+  padding: 14px 18px;
+
+  border-radius: 16px;
+
+  background: white;
+
+  color: black;
+
+  font-size: 18px;
+
+  font-weight: bold;
+
+  text-align: right;
+
+  outline: none;
+
+  border: 2px solid transparent;
+
+  transition: 0.3s;
+}
+
+.date-input:hover {
+  border-color: #06b6d4;
+}
+
+.date-input:focus {
+  border-color: #0891b2;
+
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.25);
+}
+
+/* Calendar */
+
+.custom-calendar {
+  direction: rtl;
+
+  font-family: Arial, sans-serif;
+
+  border-radius: 20px;
+
+  overflow: hidden;
+
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Header */
+
+.react-datepicker__header {
+  background: #0891b2 !important;
+
+  color: white;
+
+  border-bottom: none;
+}
+
+/* Month text */
+
+.react-datepicker__current-month {
+  color: white;
+
+  font-size: 18px;
+
+  font-weight: bold;
+}
+
+/* Days */
+
+.react-datepicker__day {
+  border-radius: 10px;
+
+  padding: 5px;
+
+  transition: 0.2s;
+}
+
+.react-datepicker__day:hover {
+  background: #06b6d4;
+
+  color: white;
+}
+
+/* Selected day */
+
+.react-datepicker__day--selected {
+  background: #0e7490 !important;
+
+  color: white !important;
+}
+
+/* Today */
+
+.react-datepicker__day--today {
+  font-weight: bold;
+
+  border: 2px solid #0891b2;
+}
+
+/* =========================================
+   PDF CAPTURE
+   ========================================= */
+
+.pdf-capture-wrapper {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+
+  width: 1120px;
+  height: 755px;
+
+  overflow: hidden;
+
+  background: white;
+}
+
+.pdf-a4-page {
+  position: relative;
+
+  width: 1120px;
+  height: 755px;
+
+  padding: 12px;
+
+  background: white;
+
+  display: grid;
+
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+
+  gap: 10px;
+
+  box-sizing: border-box;
+}
+
+.pdf-table-box {
+  width: 100%;
+  height: 100%;
+
+  overflow: hidden;
+
+  background: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdf-copyright {
+  position: absolute;
+
+  left: 18px;
+  bottom: 5px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 4px;
+
+  font-size: 10px;
+}
+
+/* =========================================
+   PRINT
+   ========================================= */
+
+.print-a4-page {
+  display: none;
+}
+
+/* =========================================
+   WHEN PRINTING
+   ========================================= */
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 5mm;
+  }
+
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+
+    background: white;
+  }
+
+  /* Hide normal website */
+  .screen-content {
+    display: none !important;
+  }
+
+  /* Hide PDF helper */
+  .pdf-capture-wrapper {
+    display: none !important;
+  }
+
+  /* Show the 4-table print page */
+  .print-a4-page {
+    display: grid !important;
+
+    width: 287mm;
+    height: 200mm;
+
+    padding: 2mm;
+
+    box-sizing: border-box;
+
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+
+    gap: 3mm;
+
+    background: white;
+
+    position: relative;
+
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .print-table-box {
+    width: 100%;
+    height: 100%;
+
+    overflow: hidden;
+
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+
+    box-sizing: border-box;
+
+    background: white;
+  }
+
+  .print-copyright {
+    position: absolute;
+
+    left: 3mm;
+    bottom: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 2px;
+
+    font-size: 9px;
+  }
+}
