@@ -20,7 +20,7 @@ export default function Tables() {
           </div>
         </div>
         <div className="flex justify-center items-center m-1">
-          <p className="text-[12px] font-black">
+          <p className="text-[12px] font-black text-center">
             الخدمات الليلية لمركز عمليات ٢٥٢ حرب إلكترونية عن يوم (
             {getResult?.day}) الموافق : {getResult.date}
           </p>

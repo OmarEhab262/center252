@@ -192,7 +192,7 @@ export default function Show() {
               zoom: 1.5,
             }}
           >
-            <div className="w-225">
+            <div className="">
               <Tables />
             </div>
 
