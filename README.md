@@ -11,12 +11,12 @@ In the army, every unit keeps a rotating daily duty roster split between two pos
 ## The Problem It Solves
 
 - **Speed** — generating and printing the daily roster used to take time; now it's a couple of clicks.
-- **Organization** — one clear system for managing personnel instead of loose notes or memory.
+- **Organization** — one clear system for managing ٍٍٍSoldiers instead of loose notes or memory.
 - **Continuity** — nothing gets forgotten between shifts, since every day's roster is saved and dated automatically.
 
 ## Features
 
-- **Manage Personnel** — add, edit, and delete individuals, each with their rank/grade recorded.
+- **Manage ٍٍٍSoldiers** — add, edit, and delete individuals, each with their rank/grade recorded.
 - **Home Dashboard** — displays the officers' info for the day along with the names assigned to duty.
 - **Switch Duty Button** — flips the roster for the next day: whoever was on weapon duty moves to gate duty and vice versa, and the app generates the new day's assignment (guard/غفرة) automatically.
 - **Clean Single View** — the full roster is displayed on one screen for easy review before printing.
@@ -30,19 +30,10 @@ In the army, every unit keeps a rotating daily duty roster split between two pos
 - **html2canvas-pro** — screen capture for PDF export
 - **jsPDF** — PDF generation
 - **react-hot-toast** — user feedback/notifications
-- **Electron** _(optional)_ — desktop app support for native printing
-
-## Getting Started
-
-No build steps needed to run the app — a pre-built `dist` folder is included.
-
-1. Open the `dist` folder.
-2. Run `index.html` (or launch the Electron app if using the desktop build).
-3. The app opens directly to the home page — ready to use.
 
 ## Usage
 
-1. Add your personnel with their ranks/grades from the management screen.
+1. Add your ٍٍٍSoldiers with their ranks/grades from the management screen.
 2. The home page shows today's duty roster automatically.
 3. Use the **Switch Duty** button to flip the roster for the next day (weapon ↔ gate).
 4. Review the roster on the single-screen view.
