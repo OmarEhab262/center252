@@ -204,7 +204,7 @@ export default function Tables() {
             </div>
             <p className="text-[7px]">
               {" "}
-              {getResult.leader.rank} /{getResult.leader.name}{" "}
+              {getResult.leader.name} / {getResult.leader.rank}
             </p>
             <p className="text-[7px]"> قائد مركز عمليات ٢٥٢ حرب إلك</p>
           </div>
