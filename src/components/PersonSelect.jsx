@@ -1,84 +1,165 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
-export default function PersonSelect({ names = [], value, onChange }) {
+export default function PersonSelect({
+  names = [],
+  value,
+  onChange,
+  filterRanks = null,
+}) {
   const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
 
-  const selected = names.find((person) => person.id === Number(value));
+  // Filter names according to the required ranks
+  const filteredNames = filterRanks
+    ? names.filter((person) => filterRanks.includes(person.rank))
+    : names;
+
+  const selectedPerson = names.find(
+    (person) => String(person.id) === String(value),
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleSelect = (personId) => {
+    onChange(personId);
+    setOpen(false);
+  };
 
   return (
-    <div className="flex-1 relative ">
-      {/* Selected Name */}
+    <div ref={containerRef} className="relative flex-1">
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen((prev) => !prev)}
         className="
-        w-full
-        rounded-xl
-        p-3
-        text-white
-        bg-slate-800
-        hover:bg-slate-700
-        shadow-lg
-        duration-300
-           border border-slate-500
-        focus:ring-2 focus:ring-cyan-500
-        font-bold
-        cursor-pointer
-        text-center
+          w-full
+          rounded-lg
+          p-2
+          text-start
+          bg-slate-700
+          hover:bg-slate-600
+          transition-all
+          duration-300
+          font-bold
+          border
+          border-slate-500
+          focus:ring-2
+          focus:ring-cyan-500
+          focus:outline-none
+          cursor-pointer
+          text-white
+          flex
+          items-center
+          justify-between
+          gap-3
         "
       >
-        {selected ? selected.name : "اختر الاسم"}
+        <span className="truncate">
+          {selectedPerson
+            ? `${selectedPerson.name} - ${selectedPerson.rank}`
+            : value === "---"
+              ? "---"
+              : "اختر الاسم"}
+        </span>
+
+        <span
+          className={`
+            text-sm
+            flex-shrink-0
+            transition-transform
+            duration-300
+            ${open ? "rotate-180" : ""}
+          `}
+        >
+          ▼
+        </span>
       </button>
 
-      {/* Options */}
       {open && (
         <div
           className="
-          absolute
-          z-50
-          top-full
-          right-0
-          left-0
-          mt-2
-          bg-white
-          rounded-xl
-          shadow-xl
-          max-h-60
-          overflow-y-auto
+            absolute
+            z-50
+            top-full
+            right-0
+            left-0
+            mt-2
+            bg-slate-800
+            border
+            border-slate-600
+            rounded-xl
+            shadow-2xl
+            overflow-hidden
+            max-h-72
+            overflow-y-auto
           "
         >
-          {names.map((person) => (
-            <div
-              key={person.id}
-              onClick={() => {
-                onChange(person.id);
-                setOpen(false);
-              }}
-              className="
+          <button
+            type="button"
+            onClick={() => handleSelect("")}
+            className="
+              w-full
               px-4
               py-3
-              cursor-pointer
-              text-black
-              hover:bg-cyan-100
-              flex
-              justify-between
-              items-center
+              text-right
+              text-white
+              hover:bg-slate-700
+              transition
+            "
+          >
+            اختر الاسم
+          </button>
+
+          {filteredNames.map((person) => (
+            <button
+              key={person.id}
+              type="button"
+              onClick={() => handleSelect(person.id)}
+              className="
+                w-full
+                px-4
+                py-3
+                text-right
+                text-white
+                hover:bg-slate-700
+                transition
               "
             >
-              {/* Name */}
-              <span>{person.name}</span>
-
-              {/* Rank */}
-              <span
-                className="
-                font-bold
-                text-slate-700
-                "
-              >
-                {person.rank}
-              </span>
-            </div>
+              {person.name} - {person.rank}
+            </button>
           ))}
+
+          <button
+            type="button"
+            onClick={() => handleSelect("---")}
+            className="
+              w-full
+              px-4
+              py-3
+              text-right
+              text-white
+              hover:bg-slate-700
+              transition
+              border-t
+              border-slate-700
+            "
+          >
+            ---
+          </button>
         </div>
       )}
     </div>

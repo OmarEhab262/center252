@@ -8,7 +8,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import html2canvas from "html2canvas-pro";
 import jsPDF from "jspdf";
 import toast from "react-hot-toast";
-
+import ArabicNumbers from "../components/ArabicNumbers";
 export default function Show() {
   // The table displayed on the screen
   const captureRef = useRef(null);
@@ -126,9 +126,8 @@ export default function Show() {
 
   return (
     <>
-      {/* =========================
-        NORMAL SCREEN
-    ========================= */}
+      <ArabicNumbers />
+
       <div className="screen-content min-h-screen bg-gray-100 p-6">
         {/* Buttons */}
         <div className="flex justify-center items-center gap-3 mb-6">
@@ -199,7 +198,9 @@ export default function Show() {
             <div className="copyright flex justify-center mt-4 items-center">
               CopyRight
               <LocalFireDepartmentIcon fontSize="small" />
-              <div className="mt-1 ml-1">OMAR EHAB 2026</div>
+              <div className="mt-1 ml-1 ">
+                OMAR EHAB <span className="font-bold"> 2026</span>
+              </div>
             </div>
           </div>
         </div>

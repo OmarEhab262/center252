@@ -1,10 +1,13 @@
 import { Button } from "@mui/material";
-import { Edit, Delete } from "@mui/icons-material";
+import { Edit, Delete, ArrowBack } from "@mui/icons-material";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
+import { getUnitName } from "../utils/unitName";
 const Add = () => {
   const ranks = [
+    "لواء أح",
+    "لواء",
     "عميد أح",
     "عميد",
     "مقدم أح",
@@ -24,9 +27,18 @@ const Add = () => {
     "جندى",
     "---",
   ];
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "instant",
+    });
+  }, []);
+
   const [name, setName] = useState("");
   const [rank, setRank] = useState("");
   const [editId, setEditId] = useState(null);
+  const unitName = getUnitName();
   const [list, setList] = useState(() => {
     const saved = localStorage.getItem("listNames");
     return saved ? JSON.parse(saved) : [];
@@ -76,6 +88,11 @@ const Add = () => {
     setRank("");
   };
   const editPerson = (person) => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "instant",
+    });
     setEditId(person.id);
     setName(person.name);
     setRank(person.rank);
@@ -90,34 +107,32 @@ const Add = () => {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-cyan-900 via-slate-900 to-black text-white py-5 sm:py-10 px-3">
-      {" "}
-      <div className="relative">
-        <Link
-          to="/"
-          className="
-    absolute
-    top-4
-    right-4
-    z-10
-    bg-cyan-700
-    hover:bg-cyan-600
-    transition-all
-    duration-500
-    px-5
-    py-2
-    rounded-xl
-    text-lg
-    font-bold
-    shadow-lg
-    animate-bounce-slow
-  "
-        >
-          ←
-        </Link>
-      </div>
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="bg-white/10 rounded-3xl shadow-2xl p-5 sm:p-8 backdrop-blur">
+          <Button
+            component={Link}
+            to="/"
+            startIcon={
+              <ArrowBack
+                sx={{
+                  color: "#fff",
+                }}
+              />
+            }
+            sx={{
+              color: "#fff",
+              bgcolor: "#334155",
+              borderRadius: "10px",
+              px: 2.5,
+              py: 1,
+              fontWeight: "bold",
+              "&:hover": {
+                bgcolor: "#475569",
+              },
+            }}
+          >
+            رجوع
+          </Button>{" "}
           <h1
             className="
       text-2xl
@@ -128,7 +143,7 @@ const Add = () => {
       leading-relaxed
     "
           >
-            اضــــافة اســـــماء خدمــــــــــــة مركز عمليات 252 حرب إلكترونية
+            اضــــافة اســـــماء خدمــــــــــــة {unitName}
           </h1>
         </div>
 

@@ -264,3 +264,9 @@ body {
     font-size: 9px;
   }
 }
+
+.screen-content,
+.pdf-capture-wrapper,
+.print-a4-page {
+  font-variant-numeric: arabic-indic;
+}

@@ -1,3 +1,4 @@
+import { unitName } from "../utils/unitName";
 export default function ServiceCard({ getResult }) {
   return (
     <div
@@ -18,12 +19,12 @@ h-full
             قيـــادة الجــــيش الثانى الميدانى
           </p>
 
-          <p className="underline font-black">مركز عمليات 252 حرب إلكترونية</p>
+          <p className="underline font-black">{unitName}</p>
         </div>
       </div>
 
       <div className="text-center m-2 font-bold">
-        الخدمات الليلية لمركز عمليات 252 حرب إلكترونية
+        الخدمات الليلية ل{unitName}
         <br />
         عن يوم ({getResult?.day}) الموافق {getResult?.date}
       </div>
