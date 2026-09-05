@@ -24,13 +24,7 @@ import { Link } from "react-router-dom";
 
 import { toast } from "react-hot-toast";
 
-import {
-  encryptText,
-  decryptText,
-  getUsers,
-  saveUsers,
-  hashEmail,
-} from "../utils/authCrypto";
+import { encryptText, decryptText } from "../utils/authCrypto";
 
 // --------------------------------------------------
 // إنشاء Data مستقلة لكل خدمة جنود
@@ -97,25 +91,29 @@ export default function Control() {
   // المستخدم
   // ------------------------------------------------
 
+  // ------------------------------------------------
+  // المستخدم
+  // ------------------------------------------------
   const [user, setUser] = useState(() => {
-    const users = getUsers();
+    try {
+      const savedAccount = localStorage.getItem("account");
 
-    if (!users.length) {
+      if (!savedAccount) {
+        return null;
+      }
+
+      const account = JSON.parse(savedAccount);
+
+      return {
+        email: account.email,
+        password: decryptText(account.password),
+      };
+    } catch {
       return null;
     }
-
-    const currentUser = users[0];
-
-    return {
-      id: currentUser.id,
-      name: currentUser.name,
-      email: decryptText(currentUser.email),
-      password: decryptText(currentUser.password),
-    };
   });
 
   const [email, setEmail] = useState(user?.email || "");
-
   const [password, setPassword] = useState(user?.password || "");
 
   // ------------------------------------------------
@@ -144,6 +142,8 @@ export default function Control() {
 
   const [openAdd, setOpenAdd] = useState(false);
 
+  const [openDelete, setOpenDelete] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState(null);
   const [selectedType, setSelectedType] = useState("");
 
   const [serviceName, setServiceName] = useState("");
@@ -173,14 +173,12 @@ export default function Control() {
   // حفظ بيانات الدخول
   // ------------------------------------------------
 
+  // ------------------------------------------------
+  // حفظ بيانات الدخول
+  // ------------------------------------------------
   const handleSaveAuth = () => {
-    if (!user) {
-      toast.error("لا يوجد حساب");
-      return;
-    }
-
     if (!email.trim()) {
-      toast.error("من فضلك اكتب البريد الإلكتروني");
+      toast.error("من فضلك اكتب اسم المستخدم");
       return;
     }
 
@@ -191,31 +189,23 @@ export default function Control() {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const users = getUsers();
+    const updatedAccount = {
+      email: normalizedEmail,
+      password: encryptText(password),
+    };
 
-    const updatedUsers = users.map((item) => {
-      if (item.id !== user.id) {
-        return item;
-      }
+    localStorage.setItem("account", JSON.stringify(updatedAccount));
 
-      return {
-        ...item,
-        email: encryptText(normalizedEmail),
-        emailHash: hashEmail(normalizedEmail),
-        password: encryptText(password),
-      };
-    });
-
-    saveUsers(updatedUsers);
-
-    setUser((prev) => ({
-      ...prev,
+    // تحديث الحالة الحالية
+    setUser({
       email: normalizedEmail,
       password: password,
-    }));
+    });
 
-    setEmail("");
-    setPassword("");
+    // تحديث الحقول
+    setEmail(normalizedEmail);
+    setPassword(password);
+
     setShowPassword(false);
 
     toast.success("تم تعديل بيانات الدخول بنجاح");
@@ -306,14 +296,30 @@ export default function Control() {
   // حذف خدمة
   // ------------------------------------------------
 
-  const handleDeleteService = (id) => {
-    const updatedServices = services.filter((service) => service.id !== id);
+  const handleDeleteService = (service) => {
+    setServiceToDelete(service);
+    setOpenDelete(true);
+  };
+
+  const handleCloseDelete = () => {
+    setOpenDelete(false);
+    setServiceToDelete(null);
+  };
+
+  const confirmDeleteService = () => {
+    if (!serviceToDelete) return;
+
+    const updatedServices = services.filter(
+      (service) => service.id !== serviceToDelete.id,
+    );
 
     setServices(updatedServices);
 
     localStorage.setItem("serviceTypes", JSON.stringify(updatedServices));
 
-    toast.success("تم حذف الخدمة");
+    toast.success("تم حذف الخدمة بنجاح");
+
+    handleCloseDelete();
   };
 
   // ------------------------------------------------
@@ -737,18 +743,10 @@ export default function Control() {
                         </div>
 
                         <div className="text-xl font-bold">{service.name}</div>
-
-                        {/* للتأكد أن الخدمة لديها data */}
-
-                        {service.type === "soldiers" && (
-                          <div className="text-xs text-emerald-400 mt-2">
-                            بيانات الخدمة مستقلة ✓
-                          </div>
-                        )}
                       </div>
 
                       <IconButton
-                        onClick={() => handleDeleteService(service.id)}
+                        onClick={() => handleDeleteService(service)}
                         sx={{
                           color: "#ef4444",
                         }}
@@ -979,6 +977,102 @@ export default function Control() {
             }}
           >
             إضافة
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={openDelete}
+        onClose={handleCloseDelete}
+        fullWidth
+        maxWidth="xs"
+        sx={{
+          "& .MuiDialog-paper": {
+            backgroundColor: "#0f172a",
+            color: "#fff",
+            borderRadius: "20px",
+            border: "1px solid rgba(255,255,255,0.1)",
+            boxShadow: "0 25px 60px rgba(0,0,0,0.7)",
+            direction: "rtl",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            color: "#fff",
+            fontWeight: "bold",
+            fontSize: "22px",
+            textAlign: "center",
+          }}
+        >
+          تأكيد الحذف
+        </DialogTitle>
+
+        <DialogContent
+          sx={{
+            color: "#cbd5e1",
+            textAlign: "center",
+            pb: 2,
+          }}
+        >
+          <div className="text-lg">هل أنت متأكد من حذف الخدمة؟</div>
+
+          {serviceToDelete && (
+            <div className="mt-3 text-xl font-bold text-red-400">
+              {serviceToDelete.name}
+            </div>
+          )}
+
+          <div className="mt-2 text-sm text-slate-400">
+            لا يمكن التراجع عن هذا الإجراء.
+          </div>
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            gap: 2,
+            px: 3,
+            pb: 3,
+          }}
+        >
+          <Button
+            onClick={handleCloseDelete}
+            sx={{
+              color: "#fff",
+              backgroundColor: "#475569",
+              borderRadius: "10px",
+              fontWeight: "bold",
+              px: 3,
+              "&:hover": {
+                backgroundColor: "#64748b",
+              },
+            }}
+          >
+            إلغاء
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={confirmDeleteService}
+            startIcon={<Delete />}
+            sx={{
+              color: "#fff",
+              backgroundColor: "#dc2626",
+              borderRadius: "10px",
+              fontWeight: "bold",
+              px: 3,
+
+              "& .MuiButton-startIcon": {
+                marginRight: "8px",
+                marginLeft: 0,
+              },
+
+              "&:hover": {
+                backgroundColor: "#b91c1c",
+              },
+            }}
+          >
+            حذف
           </Button>
         </DialogActions>
       </Dialog>

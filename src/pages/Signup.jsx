@@ -8,9 +8,16 @@ import {
   CircularProgress,
 } from "@mui/material";
 
-import { Email, LockOutlined, PersonAddAlt } from "@mui/icons-material";
+import {
+  Email,
+  LockOutlined,
+  PersonAddAlt,
+  Visibility,
+  VisibilityOff,
+} from "@mui/icons-material";
 
 import { Link, useNavigate } from "react-router-dom";
+
 import toast from "react-hot-toast";
 
 import {
@@ -92,8 +99,10 @@ export default function Signup() {
   });
 
   const [touched, setTouched] = useState({});
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
   const [loading, setLoading] = useState(false);
 
   const handleChange = (field) => (e) => {
@@ -164,7 +173,6 @@ export default function Signup() {
 
       const newUser = {
         id: Date.now(),
-
         name: form.unitName.trim(),
 
         // Email is encrypted
@@ -190,9 +198,11 @@ export default function Signup() {
       navigate("/login");
     }, 400);
   };
+
   useEffect(() => {
     localStorage.removeItem("auth");
   }, []);
+
   useEffect(() => {
     const users = getUsers();
 
@@ -201,6 +211,7 @@ export default function Signup() {
       navigate("/login", { replace: true });
     }
   }, [navigate]);
+
   return (
     <div className="min-h-screen bg-linear-to-br from-cyan-900 via-slate-900 to-black text-white flex items-center justify-center px-4 py-10">
       <div className="w-125 max-w-4xl grid rounded-3xl overflow-hidden shadow-2xl">
@@ -229,6 +240,7 @@ export default function Signup() {
               sx={fieldSx}
               InputProps={{
                 disableUnderline: true,
+
                 endAdornment: (
                   <InputAdornment position="end">
                     <PersonAddAlt
@@ -246,7 +258,7 @@ export default function Signup() {
             <TextField
               variant="filled"
               label="البريد الإلكتروني"
-              type="email"
+              type="text"
               dir="rtl"
               value={form.email}
               onChange={handleChange("email")}
@@ -256,6 +268,7 @@ export default function Signup() {
               sx={fieldSx}
               InputProps={{
                 disableUnderline: true,
+
                 endAdornment: (
                   <InputAdornment position="end">
                     <Email
@@ -288,12 +301,27 @@ export default function Signup() {
                 startAdornment: (
                   <InputAdornment position="start">
                     <IconButton
-                      onClick={() => setShowPassword((v) => !v)}
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
                       edge="start"
                       size="small"
-                      aria-label="إظهار كلمة السر"
+                      aria-label={
+                        showPassword ? "إخفاء كلمة السر" : "إظهار كلمة السر"
+                      }
+                      sx={{
+                        color: "rgba(255,255,255,0.55)",
+
+                        "&:hover": {
+                          color: "#22d3ee",
+                          backgroundColor: "rgba(34,211,238,0.08)",
+                        },
+                      }}
                     >
-                      {showPassword ? "🙈" : "👁️"}
+                      {showPassword ? (
+                        <VisibilityOff fontSize="small" />
+                      ) : (
+                        <Visibility fontSize="small" />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -328,12 +356,29 @@ export default function Signup() {
                 startAdornment: (
                   <InputAdornment position="start">
                     <IconButton
-                      onClick={() => setShowConfirm((v) => !v)}
+                      type="button"
+                      onClick={() => setShowConfirm((prev) => !prev)}
                       edge="start"
                       size="small"
-                      aria-label="إظهار تأكيد كلمة السر"
+                      aria-label={
+                        showConfirm
+                          ? "إخفاء تأكيد كلمة السر"
+                          : "إظهار تأكيد كلمة السر"
+                      }
+                      sx={{
+                        color: "rgba(255,255,255,0.55)",
+
+                        "&:hover": {
+                          color: "#22d3ee",
+                          backgroundColor: "rgba(34,211,238,0.08)",
+                        },
+                      }}
                     >
-                      {showConfirm ? "🙈" : "👁️"}
+                      {showConfirm ? (
+                        <VisibilityOff fontSize="small" />
+                      ) : (
+                        <Visibility fontSize="small" />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),

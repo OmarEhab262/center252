@@ -101,15 +101,12 @@ export default function Tables() {
 
   return (
     <>
-      <div
-        dir="ltr"
-        className="w-full border-2 border-black p-1 text-[8px] leading-tight bg-white"
-      >
+      <div className="w-full border-2 border-black p-1 text-[8px] leading-tight bg-white">
         {/* ================= Header ================= */}
 
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center underline mb-2">
           <div>
-            <p className="underline-offset-8 underline mb-2 font-black">
+            <p className="-offset-8  font-black">
               <span>{getResult?.password}</span> : كلمة سر الليل
             </p>
           </div>
@@ -141,7 +138,7 @@ export default function Tables() {
 
         <div className="flex justify-center items-center m-1">
           <p className="text-[12px] font-black text-center">
-            الخدمات الليلية ل{unitName} عن يوم ({getResult?.day}) الموافق :{" "}
+            الخدمات الليلية {unitName} عن يوم {getResult?.day} الموافق :{" "}
             {getResult?.date}
           </p>
         </div>
@@ -170,6 +167,10 @@ export default function Tables() {
 
                 "& .MuiTableCell-root": {
                   verticalAlign: "middle",
+                  direction: "rtl",
+                  fontFamily: "Cairo, Arial, sans-serif",
+                  letterSpacing: "normal",
+                  wordSpacing: "normal",
                 },
               }}
             >

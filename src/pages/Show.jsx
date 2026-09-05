@@ -45,19 +45,28 @@ export default function Show() {
         (async () => {
           const element = pdfRef.current;
 
-          // Make sure fonts are loaded
-          if (document.fonts?.ready) {
+          // انتظار تحميل الخطوط
+          if (document.fonts) {
             await document.fonts.ready;
+
+            try {
+              await document.fonts.load('400 16px "Cairo"');
+              await document.fonts.load('600 16px "Cairo"');
+              await document.fonts.load('700 16px "Cairo"');
+              await document.fonts.load('900 16px "Cairo"');
+            } catch (error) {
+              console.warn("Cairo font loading warning:", error);
+            }
           }
 
-          // Give browser time to render
+          // انتظار اكتمال الـ rendering
           await new Promise((resolve) => {
             requestAnimationFrame(() => {
               requestAnimationFrame(resolve);
             });
           });
 
-          // Capture the 4-table A4 layout
+          // إنشاء الصورة
           const canvas = await html2canvas(element, {
             scale: 2,
             useCORS: true,
@@ -67,7 +76,7 @@ export default function Show() {
 
           const imgData = canvas.toDataURL("image/png");
 
-          // A4 landscape
+          // A4 Landscape
           const pdf = new jsPDF({
             orientation: "landscape",
             unit: "mm",
@@ -77,13 +86,11 @@ export default function Show() {
           const pageWidth = 297;
           const pageHeight = 210;
 
-          // 5mm margin
           const margin = 5;
 
           const availableWidth = pageWidth - margin * 2;
           const availableHeight = pageHeight - margin * 2;
 
-          // Keep the A4 aspect ratio
           const imageRatio = canvas.width / canvas.height;
 
           let imgWidth = availableWidth;
@@ -94,13 +101,12 @@ export default function Show() {
             imgWidth = imgHeight * imageRatio;
           }
 
-          // Center image
           const x = (pageWidth - imgWidth) / 2;
           const y = (pageHeight - imgHeight) / 2;
 
           pdf.addImage(imgData, "PNG", x, y, imgWidth, imgHeight);
 
-          // File name
+          // اسم الملف
           const today = new Date();
 
           const day = String(today.getDate()).padStart(2, "0");
@@ -113,12 +119,13 @@ export default function Show() {
         })(),
         {
           loading: "جارٍ إنشاء PDF...",
-          success: "تم حفظ PDF بنجاح",
+          success: "تم إنشاء PDF بنجاح",
           error: "حدث خطأ أثناء إنشاء PDF",
         },
       );
     } catch (error) {
       console.error("PDF generation failed:", error);
+      toast.error("حدث خطأ أثناء إنشاء PDF");
     } finally {
       setGenerating(false);
     }

@@ -1,24 +1,23 @@
 import CustomPersonSelect from "./CustomPersonSelect";
 
 const duplicateColors = [
+  "bg-red-500 shadow-red-500/50",
   "bg-cyan-400 shadow-cyan-400/50",
-  "bg-emerald-400 shadow-emerald-400/50",
-  "bg-amber-400 shadow-amber-400/50",
-  "bg-orange-400 shadow-orange-400/50",
-  "bg-red-400 shadow-red-400/50",
-  "bg-purple-400 shadow-purple-400/50",
-  "bg-pink-400 shadow-pink-400/50",
-  "bg-blue-400 shadow-blue-400/50",
-  "bg-indigo-400 shadow-indigo-400/50",
-  "bg-violet-400 shadow-violet-400/50",
-  "bg-fuchsia-400 shadow-fuchsia-400/50",
-  "bg-rose-400 shadow-rose-400/50",
+  "bg-purple-500 shadow-purple-500/50",
   "bg-lime-400 shadow-lime-400/50",
-  "bg-green-400 shadow-green-400/50",
-  "bg-teal-400 shadow-teal-400/50",
-  "bg-sky-400 shadow-sky-400/50",
+  "bg-orange-500 shadow-orange-500/50",
+  "bg-blue-600 shadow-blue-600/50",
+  "bg-yellow-400 shadow-yellow-400/50",
+  "bg-fuchsia-500 shadow-fuchsia-500/50",
+  "bg-green-500 shadow-green-500/50",
+  "bg-pink-500 shadow-pink-500/50",
+  "bg-indigo-500 shadow-indigo-500/50",
+  "bg-amber-500 shadow-amber-500/50",
+  "bg-teal-500 shadow-teal-500/50",
+  "bg-rose-500 shadow-rose-500/50",
+  "bg-violet-500 shadow-violet-500/50",
+  "bg-emerald-500 shadow-emerald-500/50",
 ];
-
 export default function GuardSection({
   title,
   data = [],

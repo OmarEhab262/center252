@@ -6,17 +6,11 @@ import LoginIcon from "@mui/icons-material/Login";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import toast from "react-hot-toast";
 
-import {
-  decryptText,
-  encryptText,
-  findUserByEmail,
-  getUsers,
-} from "../utils/authCrypto";
-
+import { encryptText, decryptText } from "../utils/authCrypto";
 export default function Login() {
   const navigate = useNavigate();
 
@@ -27,10 +21,20 @@ export default function Login() {
 
   const [showPassword, setShowPassword] = useState(false);
 
-  // Check if there is already an account
-  const hasAccount = getUsers().length > 0;
-
+  // إنشاء الحساب الافتراضي أول مرة فقط
   useEffect(() => {
+    const account = localStorage.getItem("account");
+
+    if (!account) {
+      const defaultAccount = {
+        email: "admin",
+        password: encryptText("123456"),
+      };
+
+      localStorage.setItem("account", JSON.stringify(defaultAccount));
+    }
+
+    // حذف الجلسة الحالية عند فتح صفحة Login
     localStorage.removeItem("auth");
   }, []);
 
@@ -47,52 +51,58 @@ export default function Login() {
     const email = form.email.trim().toLowerCase();
     const password = form.password;
 
-    // Check empty fields
     if (!email || !password) {
       toast.error("من فضلك املأ كل الحقول");
       return;
     }
 
-    // Find user using emailHash
-    const user = findUserByEmail(email);
+    const savedAccount = localStorage.getItem("account");
 
-    if (!user) {
-      toast.error("البريد الإلكتروني غير مسجل");
+    if (!savedAccount) {
+      toast.error("بيانات الحساب غير موجودة");
       return;
     }
 
-    // Decrypt stored password
-    const storedPassword = decryptText(user.password);
+    const account = JSON.parse(savedAccount);
 
-    if (storedPassword !== password) {
+    // التحقق من اسم المستخدم
+    if (email !== account.email) {
+      toast.error("اسم المستخدم غير صحيح");
+      return;
+    }
+
+    // فك تشفير كلمة السر
+    const storedPassword = decryptText(account.password);
+
+    if (password !== storedPassword) {
       toast.error("كلمة السر غير صحيحة");
       return;
     }
 
-    // Create admin session
+    // إنشاء الجلسة
     const authData = {
-      id: user.id,
-      name: user.name,
-      email: encryptText(email),
+      name: account.email,
+      email: encryptText(account.email),
       role: "admin",
       enteredAt: Date.now(),
     };
 
-    // Save current session
     localStorage.setItem("auth", JSON.stringify(authData));
 
     toast.success("تم تسجيل الدخول بنجاح");
 
     navigate("/", { replace: true });
   };
-
   const handleGuestLogin = () => {
     const guestData = {
       name: "زائر",
+      role: "guest",
       enteredAt: Date.now(),
     };
 
     localStorage.setItem("auth", JSON.stringify(guestData));
+
+    toast.success("تم الدخول كزائر");
 
     navigate("/", { replace: true });
   };
@@ -107,19 +117,19 @@ export default function Login() {
           </h1>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            {/* Email */}
+            {/* Username */}
             <div className="w-full bg-white/5 rounded-2xl p-5 shadow-lg">
               <label className="block text-lg font-bold mb-3 text-end">
-                البريد الإلكتروني
+                اسم المستخدم
               </label>
 
               <input
-                type="email"
+                type="text"
                 dir="ltr"
                 value={form.email}
                 onChange={handleChange("email")}
                 className="w-full rounded-xl p-3 text-end bg-slate-800 text-white text-lg font-bold placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                placeholder="example@mail.com"
+                placeholder="اسم المستخدم"
               />
             </div>
 
@@ -135,7 +145,7 @@ export default function Login() {
                   dir="ltr"
                   value={form.password}
                   onChange={handleChange("password")}
-                  className="w-full rounded-xl p-3  text-end bg-slate-800 text-white text-lg font-bold placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full rounded-xl p-3 text-end bg-slate-800 text-white text-lg font-bold placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   placeholder="••••••••"
                 />
 
@@ -148,7 +158,6 @@ export default function Login() {
                     top: "50%",
                     transform: "translateY(-50%)",
                     color: "rgba(255,255,255,0.6)",
-
                     "&:hover": {
                       color: "#22d3ee",
                       backgroundColor: "rgba(255,255,255,0.08)",
@@ -183,19 +192,19 @@ export default function Login() {
                 py: 1.4,
                 fontSize: "16px",
                 bgcolor: "#16a34a",
-
                 "&:hover": {
                   bgcolor: "#15803d",
                 },
-
                 boxShadow: "0 4px 14px rgba(22,163,74,0.5)",
               }}
             >
               دخول
             </Button>
 
-            {/* Guest Login */}
             <Button
+              type="button"
+              variant="contained"
+              onClick={handleGuestLogin}
               sx={{
                 borderRadius: "10px",
                 textTransform: "none",
@@ -205,35 +214,15 @@ export default function Login() {
                 fontSize: "16px",
                 bgcolor: "#0000a2",
                 color: "#fff",
-                borderColor: "#0000a2",
-
                 "&:hover": {
                   bgcolor: "#000080",
-                  borderColor: "#000080",
                 },
-
-                boxShadow: "0 4px 14px rgba(0, 0, 162, 0.5)",
+                boxShadow: "0 4px 14px rgba(0,0,162,0.5)",
               }}
-              fullWidth
-              variant="contained"
-              onClick={handleGuestLogin}
             >
               دخول بدون تسجيل
             </Button>
           </form>
-
-          {/* Signup - Only when there is no account */}
-          {!hasAccount && (
-            <p className="text-center mt-6 text-white/70">
-              مفيش عندك حساب؟{" "}
-              <Link
-                to="/signup"
-                className="text-cyan-400 font-bold hover:underline"
-              >
-                إنشاء حساب جديد
-              </Link>
-            </p>
-          )}
         </div>
       </div>
     </div>

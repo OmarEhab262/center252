@@ -127,22 +127,19 @@ body {
 
 .pdf-a4-page {
   position: relative;
-
   width: 1120px;
   height: 755px;
-
   padding: 12px;
-
   background: white;
 
   display: grid;
-
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
 
   gap: 10px;
-
   box-sizing: border-box;
+
+  font-family: "Cairo", Arial, sans-serif;
 }
 
 .pdf-table-box {
