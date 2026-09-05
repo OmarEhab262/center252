@@ -1,5 +1,4 @@
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
 import {
   Button,
   TextField,
@@ -11,7 +10,6 @@ import {
   IconButton,
   InputAdornment,
 } from "@mui/material";
-
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Settings from "@mui/icons-material/Settings";
@@ -19,202 +17,109 @@ import Add from "@mui/icons-material/Add";
 import Delete from "@mui/icons-material/Delete";
 import ArrowBack from "@mui/icons-material/ArrowBack";
 import Save from "@mui/icons-material/Save";
-
 import { Link } from "react-router-dom";
-
 import { toast } from "react-hot-toast";
-
 import { encryptText, decryptText } from "../utils/authCrypto";
+import { getItem, setItem, getJSON, setJSON } from "../utils/storage";
 
-// --------------------------------------------------
 // إنشاء Data مستقلة لكل خدمة جنود
-// --------------------------------------------------
-
 const createGuardData = () => [
-  {
-    position: "حكمدار",
-    id: "",
-    name: "---",
-    rank: "---",
-  },
-  {
-    position: "أولى",
-    id: "",
-    name: "---",
-    rank: "---",
-  },
-  {
-    position: "ثانية",
-    id: "",
-    name: "---",
-    rank: "---",
-  },
-  {
-    position: "ثالثة",
-    id: "",
-    name: "---",
-    rank: "---",
-  },
+  { position: "حكمدار", id: "", name: "---", rank: "---" },
+  { position: "أولى", id: "", name: "---", rank: "---" },
+  { position: "ثانية", id: "", name: "---", rank: "---" },
+  { position: "ثالثة", id: "", name: "---", rank: "---" },
 ];
-// --------------------------------------------------
+
 // إصلاح الخدمات القديمة
-// --------------------------------------------------
-
 const normalizeServices = (services) => {
-  if (!Array.isArray(services)) {
-    return [];
-  }
-
+  if (!Array.isArray(services)) return [];
   return services.map((service) => {
-    // إذا كانت الخدمة جنود وليس لها data
     if (service.type === "soldiers" && !Array.isArray(service.data)) {
-      return {
-        ...service,
-
-        // Data جديدة مستقلة
-        data: createGuardData(),
-      };
+      return { ...service, data: createGuardData() };
     }
-
     return service;
   });
 };
 
-// --------------------------------------------------
-// Control
-// --------------------------------------------------
-
 export default function Control() {
   const [showPassword, setShowPassword] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
-  // ------------------------------------------------
   // المستخدم
-  // ------------------------------------------------
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  // ------------------------------------------------
-  // المستخدم
-  // ------------------------------------------------
-  const [user, setUser] = useState(() => {
-    try {
-      const savedAccount = localStorage.getItem("account");
+  // الخدمات
+  const [services, setServices] = useState([]);
 
-      if (!savedAccount) {
-        return null;
+  // بيانات الوحدة والقيادة
+  const [unitNameValue, setUnitNameValue] = useState("");
+  const [commandName, setCommandName] = useState("");
+
+  // تحميل كل البيانات من SQLite أول مرة
+  useEffect(() => {
+    (async () => {
+      try {
+        const savedAccount = await getItem("account");
+        if (savedAccount) {
+          const account = JSON.parse(savedAccount);
+          setEmail(account.email || "");
+          setPassword(decryptText(account.password) || "");
+        }
+      } catch {
+        // تجاهل أي خطأ في قراءة الحساب
       }
 
-      const account = JSON.parse(savedAccount);
+      const savedServices = await getJSON("serviceTypes", []);
+      const normalized = normalizeServices(savedServices);
+      setServices(normalized);
+      await setJSON("serviceTypes", normalized);
 
-      return {
-        email: account.email,
-        password: decryptText(account.password),
-      };
-    } catch {
-      return null;
-    }
-  });
+      setUnitNameValue((await getItem("unitName")) || "");
+      setCommandName((await getItem("commandName")) || "");
 
-  const [email, setEmail] = useState(user?.email || "");
-  const [password, setPassword] = useState(user?.password || "");
+      setLoaded(true);
+    })();
+  }, []);
 
-  // ------------------------------------------------
-  // الخدمات
-  // ------------------------------------------------
-
-  const [services, setServices] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("serviceTypes") || "[]");
-
-      // إصلاح الخدمات القديمة
-      const normalized = normalizeServices(saved);
-
-      // حفظ النسخة الجديدة
-      localStorage.setItem("serviceTypes", JSON.stringify(normalized));
-
-      return normalized;
-    } catch {
-      return [];
-    }
-  });
-
-  // ------------------------------------------------
   // Dialog
-  // ------------------------------------------------
-
   const [openAdd, setOpenAdd] = useState(false);
-
   const [openDelete, setOpenDelete] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState(null);
   const [selectedType, setSelectedType] = useState("");
-
   const [serviceName, setServiceName] = useState("");
-
   const [message, setMessage] = useState("");
 
-  // ------------------------------------------------
   // أنواع الخدمات
-  // ------------------------------------------------
-
   const serviceTypes = [
-    {
-      value: "officers",
-      label: "ضباط",
-    },
-    {
-      value: "nco",
-      label: "صف ضباط",
-    },
-    {
-      value: "soldiers",
-      label: "جنود",
-    },
+    { value: "officers", label: "ضباط" },
+    { value: "nco", label: "صف ضباط" },
+    { value: "soldiers", label: "جنود" },
   ];
 
-  // ------------------------------------------------
   // حفظ بيانات الدخول
-  // ------------------------------------------------
-
-  // ------------------------------------------------
-  // حفظ بيانات الدخول
-  // ------------------------------------------------
-  const handleSaveAuth = () => {
+  const handleSaveAuth = async () => {
     if (!email.trim()) {
       toast.error("من فضلك اكتب اسم المستخدم");
       return;
     }
-
     if (!password) {
       toast.error("من فضلك اكتب كلمة السر");
       return;
     }
-
     const normalizedEmail = email.trim().toLowerCase();
-
     const updatedAccount = {
       email: normalizedEmail,
       password: encryptText(password),
     };
-
-    localStorage.setItem("account", JSON.stringify(updatedAccount));
-
-    // تحديث الحالة الحالية
-    setUser({
-      email: normalizedEmail,
-      password: password,
-    });
-
-    // تحديث الحقول
+    await setItem("account", JSON.stringify(updatedAccount));
     setEmail(normalizedEmail);
     setPassword(password);
-
     setShowPassword(false);
-
     toast.success("تم تعديل بيانات الدخول بنجاح");
   };
 
-  // ------------------------------------------------
   // فتح نافذة الإضافة
-  // ------------------------------------------------
-
   const handleOpenAdd = () => {
     setSelectedType("");
     setServiceName("");
@@ -222,80 +127,41 @@ export default function Control() {
     setOpenAdd(true);
   };
 
-  // ------------------------------------------------
   // إغلاق النافذة
-  // ------------------------------------------------
-
   const handleCloseAdd = () => {
     setOpenAdd(false);
     setSelectedType("");
     setServiceName("");
   };
 
-  // ------------------------------------------------
   // إضافة خدمة
-  // ------------------------------------------------
-
-  const handleAddService = () => {
+  const handleAddService = async () => {
     if (!selectedType) {
       setMessage("اختر نوع الخدمة أولاً");
       return;
     }
-
     if (!serviceName.trim()) {
       setMessage("اكتب اسم الخدمة");
       return;
     }
 
-    // ----------------------------------------------
-    // إنشاء الخدمة
-    // ----------------------------------------------
-
     const newService = {
       id: Date.now(),
-
       type: selectedType,
-
       name: serviceName.trim(),
-
-      // --------------------------------------------
-      // إذا كانت الخدمة جنود
-      // ننشئ Data مستقلة تماماً
-      // --------------------------------------------
-
-      ...(selectedType === "soldiers"
-        ? {
-            data: createGuardData(),
-          }
-        : {}),
+      ...(selectedType === "soldiers" ? { data: createGuardData() } : {}),
     };
 
-    // ----------------------------------------------
-    // إضافة الخدمة للقائمة
-    // ----------------------------------------------
-
     const updatedServices = [...services, newService];
-
-    // تحديث React
     setServices(updatedServices);
+    await setJSON("serviceTypes", updatedServices);
 
-    // تحديث localStorage
-    localStorage.setItem("serviceTypes", JSON.stringify(updatedServices));
-
-    // إغلاق النافذة
     handleCloseAdd();
-
     setMessage("تمت إضافة الخدمة بنجاح");
-
-    setTimeout(() => {
-      setMessage("");
-    }, 2500);
+    setTimeout(() => setMessage(""), 2500);
   };
 
-  // ------------------------------------------------
   // حذف خدمة
-  // ------------------------------------------------
-
   const handleDeleteService = (service) => {
     setServiceToDelete(service);
     setOpenDelete(true);
@@ -306,102 +172,53 @@ export default function Control() {
     setServiceToDelete(null);
   };
 
-  const confirmDeleteService = () => {
+  const confirmDeleteService = async () => {
     if (!serviceToDelete) return;
-
     const updatedServices = services.filter(
       (service) => service.id !== serviceToDelete.id,
     );
-
     setServices(updatedServices);
-
-    localStorage.setItem("serviceTypes", JSON.stringify(updatedServices));
-
+    await setJSON("serviceTypes", updatedServices);
     toast.success("تم حذف الخدمة بنجاح");
-
     handleCloseDelete();
   };
 
-  // ------------------------------------------------
   // اسم نوع الخدمة
-  // ------------------------------------------------
-
   const getTypeName = (type) => {
     const item = serviceTypes.find((service) => service.value === type);
-
     return item?.label || type;
   };
 
-  const [unitNameValue, setUnitNameValue] = useState(() => {
-    return localStorage.getItem("unitName") || "";
-  });
-
-  const [commandName, setCommandName] = useState(() => {
-    return localStorage.getItem("commandName") || "";
-  });
-  const handleSaveNames = () => {
+  const handleSaveNames = async () => {
     const unit = unitNameValue.trim();
     const command = commandName.trim();
-
     if (!unit) {
       toast.error("من فضلك اكتب اسم الوحدة");
       return;
     }
-
     if (!command) {
       toast.error("من فضلك اكتب اسم القيادة");
       return;
     }
-
-    localStorage.setItem("unitName", unit);
-    localStorage.setItem("commandName", command);
-
+    await setItem("unitName", unit);
+    await setItem("commandName", command);
     setUnitNameValue(unit);
     setCommandName(command);
-
     toast.success("تم حفظ اسم الوحدة والقيادة بنجاح");
   };
 
-  // ------------------------------------------------
-  // JSX
-  // ------------------------------------------------
+  if (!loaded) return null;
 
   return (
-    <div
-      className="
-        min-h-screen
-        bg-linear-to-br
-        from-cyan-900
-        via-slate-900
-        to-black
-        text-white
-        py-10
-        px-4
-      "
-    >
+    <div className="min-h-screen bg-linear-to-br from-cyan-900 via-slate-900 to-black text-white py-10 px-4">
       <div className="max-w-6xl mx-auto">
-        <div
-          className="
-            bg-white/10
-            rounded-3xl
-            shadow-2xl
-            p-8
-            backdrop-blur
-          "
-        >
+        <div className="bg-white/10 rounded-3xl shadow-2xl p-8 backdrop-blur">
           {/* Header */}
-
           <div className="flex items-center justify-between mb-10">
             <Button
               component={Link}
               to="/"
-              startIcon={
-                <ArrowBack
-                  sx={{
-                    color: "#fff",
-                  }}
-                />
-              }
+              startIcon={<ArrowBack sx={{ color: "#fff" }} />}
               sx={{
                 color: "#fff",
                 bgcolor: "#334155",
@@ -409,43 +226,23 @@ export default function Control() {
                 px: 2.5,
                 py: 1,
                 fontWeight: "bold",
-                "&:hover": {
-                  bgcolor: "#475569",
-                },
+                "&:hover": { bgcolor: "#475569" },
               }}
             >
               رجوع
             </Button>
-
             <div className="flex items-center gap-3">
-              <Settings
-                sx={{
-                  fontSize: 42,
-                  color: "#67e8f9",
-                }}
-              />
-
+              <Settings sx={{ fontSize: 42, color: "#67e8f9" }} />
               <h1 className="text-4xl font-black">التحكم</h1>
             </div>
-
             <div className="w-20" />
           </div>
 
           {/* Login Settings */}
-
-          <div
-            className="
-              bg-white/5
-              rounded-2xl
-              p-6
-              shadow-lg
-              mb-10
-            "
-          >
+          <div className="bg-white/5 rounded-2xl p-6 shadow-lg mb-10">
             <h2 className="text-2xl font-bold text-center mb-6">
               تغير بيانات تسجيل الدخول
             </h2>
-
             <div className="grid md:grid-cols-2 gap-6">
               <TextField
                 fullWidth
@@ -457,31 +254,14 @@ export default function Control() {
                     color: "#fff",
                     backgroundColor: "rgba(15,23,42,0.8)",
                     borderRadius: "12px",
-
-                    "& fieldset": {
-                      borderColor: "rgba(255,255,255,0.2)",
-                    },
-
-                    "&:hover fieldset": {
-                      borderColor: "#22d3ee",
-                    },
-
-                    "&.Mui-focused fieldset": {
-                      borderColor: "#22d3ee",
-                    },
+                    "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                    "&:hover fieldset": { borderColor: "#22d3ee" },
+                    "&.Mui-focused fieldset": { borderColor: "#22d3ee" },
                   },
-
-                  "& .MuiInputLabel-root": {
-                    color: "#fff",
-                    right: 14,
-                  },
-
-                  "& .MuiInputLabel-root.Mui-focused": {
-                    color: "#fff",
-                  },
+                  "& .MuiInputLabel-root": { color: "#fff", right: 14 },
+                  "& .MuiInputLabel-root.Mui-focused": { color: "#fff" },
                 }}
               />
-
               <TextField
                 fullWidth
                 type={showPassword ? "text" : "password"}
@@ -495,9 +275,7 @@ export default function Control() {
                         <IconButton
                           type="button"
                           onClick={() => setShowPassword((prev) => !prev)}
-                          sx={{
-                            color: "#cbd5e1",
-                          }}
+                          sx={{ color: "#cbd5e1" }}
                         >
                           {showPassword ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
@@ -510,32 +288,15 @@ export default function Control() {
                     color: "#fff",
                     backgroundColor: "rgba(15,23,42,0.8)",
                     borderRadius: "12px",
-
-                    "& fieldset": {
-                      borderColor: "rgba(255,255,255,0.2)",
-                    },
-
-                    "&:hover fieldset": {
-                      borderColor: "#22d3ee",
-                    },
-
-                    "&.Mui-focused fieldset": {
-                      borderColor: "#22d3ee",
-                    },
+                    "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                    "&:hover fieldset": { borderColor: "#22d3ee" },
+                    "&.Mui-focused fieldset": { borderColor: "#22d3ee" },
                   },
-
-                  "& .MuiInputLabel-root": {
-                    color: "#fff",
-                    right: 14,
-                  },
-
-                  "& .MuiInputLabel-root.Mui-focused": {
-                    color: "#fff",
-                  },
+                  "& .MuiInputLabel-root": { color: "#fff", right: 14 },
+                  "& .MuiInputLabel-root.Mui-focused": { color: "#fff" },
                 }}
               />
             </div>
-
             <div className="flex justify-center mt-6">
               <Button
                 variant="contained"
@@ -547,30 +308,20 @@ export default function Control() {
                   py: 1.3,
                   fontWeight: "bold",
                   bgcolor: "#1e3a5f",
-                  "&:hover": {
-                    bgcolor: "#264b73",
-                  },
+                  "&:hover": { bgcolor: "#264b73" },
                 }}
               >
                 حفظ بيانات الدخول
               </Button>
             </div>
           </div>
-          <div
-            className="
-    bg-white/5
-    rounded-2xl
-    p-6
-    shadow-lg
-    mb-10
-  "
-          >
+
+          {/* Unit / Command names */}
+          <div className="bg-white/5 rounded-2xl p-6 shadow-lg mb-10">
             <h2 className="text-2xl font-bold text-center mb-6">
               بيانات الوحدة والقيادة
             </h2>
-
             <div className="grid md:grid-cols-2 gap-6">
-              {/* اسم الوحدة */}
               <TextField
                 fullWidth
                 label="اسم الوحدة"
@@ -582,37 +333,15 @@ export default function Control() {
                     color: "#fff",
                     backgroundColor: "rgba(15,23,42,0.8)",
                     borderRadius: "12px",
-
-                    "& input": {
-                      color: "#fff",
-                      textAlign: "right",
-                    },
-
-                    "& fieldset": {
-                      borderColor: "rgba(255,255,255,0.2)",
-                    },
-
-                    "&:hover fieldset": {
-                      borderColor: "#22d3ee",
-                    },
-
-                    "&.Mui-focused fieldset": {
-                      borderColor: "#22d3ee",
-                    },
+                    "& input": { color: "#fff", textAlign: "right" },
+                    "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                    "&:hover fieldset": { borderColor: "#22d3ee" },
+                    "&.Mui-focused fieldset": { borderColor: "#22d3ee" },
                   },
-
-                  "& .MuiInputLabel-root": {
-                    color: "#fff",
-                    right: 14,
-                  },
-
-                  "& .MuiInputLabel-root.Mui-focused": {
-                    color: "#22d3ee",
-                  },
+                  "& .MuiInputLabel-root": { color: "#fff", right: 14 },
+                  "& .MuiInputLabel-root.Mui-focused": { color: "#22d3ee" },
                 }}
               />
-
-              {/* اسم القيادة */}
               <TextField
                 fullWidth
                 label="اسم القيادة"
@@ -624,37 +353,16 @@ export default function Control() {
                     color: "#fff",
                     backgroundColor: "rgba(15,23,42,0.8)",
                     borderRadius: "12px",
-
-                    "& input": {
-                      color: "#fff",
-                      textAlign: "right",
-                    },
-
-                    "& fieldset": {
-                      borderColor: "rgba(255,255,255,0.2)",
-                    },
-
-                    "&:hover fieldset": {
-                      borderColor: "#22d3ee",
-                    },
-
-                    "&.Mui-focused fieldset": {
-                      borderColor: "#22d3ee",
-                    },
+                    "& input": { color: "#fff", textAlign: "right" },
+                    "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                    "&:hover fieldset": { borderColor: "#22d3ee" },
+                    "&.Mui-focused fieldset": { borderColor: "#22d3ee" },
                   },
-
-                  "& .MuiInputLabel-root": {
-                    color: "#fff",
-                    right: 14,
-                  },
-
-                  "& .MuiInputLabel-root.Mui-focused": {
-                    color: "#22d3ee",
-                  },
+                  "& .MuiInputLabel-root": { color: "#fff", right: 14 },
+                  "& .MuiInputLabel-root.Mui-focused": { color: "#22d3ee" },
                 }}
               />
             </div>
-
             <div className="flex justify-center mt-6">
               <Button
                 variant="contained"
@@ -666,29 +374,18 @@ export default function Control() {
                   py: 1.3,
                   fontWeight: "bold",
                   bgcolor: "#1e3a5f",
-
-                  "&:hover": {
-                    bgcolor: "#264b73",
-                  },
+                  "&:hover": { bgcolor: "#264b73" },
                 }}
               >
                 حفظ بيانات الوحدة
               </Button>
             </div>
           </div>
-          {/* Services */}
 
-          <div
-            className="
-              bg-white/5
-              rounded-2xl
-              p-6
-              shadow-lg
-            "
-          >
+          {/* Services */}
+          <div className="bg-white/5 rounded-2xl p-6 shadow-lg">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
               <h2 className="text-2xl font-bold">الخدمات</h2>
-
               <Button
                 variant="contained"
                 onClick={handleOpenAdd}
@@ -700,26 +397,14 @@ export default function Control() {
                   px: 3,
                   py: 1.2,
                   bgcolor: "#285943",
-
-                  "&:hover": {
-                    bgcolor: "#326b50",
-                  },
+                  "&:hover": { bgcolor: "#326b50" },
                 }}
               >
                 إضافة
               </Button>
             </div>
-
             {services.length === 0 ? (
-              <div
-                className="
-                  text-center
-                  bg-slate-900/60
-                  rounded-xl
-                  p-8
-                  text-slate-300
-                "
-              >
+              <div className="text-center bg-slate-900/60 rounded-xl p-8 text-slate-300">
                 لا توجد خدمات مضافة حتى الآن
               </div>
             ) : (
@@ -727,29 +412,18 @@ export default function Control() {
                 {services.map((service) => (
                   <div
                     key={service.id}
-                    className="
-                      bg-slate-900/80
-                      border
-                      border-slate-700
-                      rounded-2xl
-                      p-5
-                      shadow-lg
-                    "
+                    className="bg-slate-900/80 border border-slate-700 rounded-2xl p-5 shadow-lg"
                   >
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-cyan-400 font-bold text-sm mb-2">
                           {getTypeName(service.type)}
                         </div>
-
                         <div className="text-xl font-bold">{service.name}</div>
                       </div>
-
                       <IconButton
                         onClick={() => handleDeleteService(service)}
-                        sx={{
-                          color: "#ef4444",
-                        }}
+                        sx={{ color: "#ef4444" }}
                       >
                         <Delete />
                       </IconButton>
@@ -760,21 +434,8 @@ export default function Control() {
             )}
           </div>
 
-          {/* Message */}
-
           {message && (
-            <div
-              className="
-                mt-6
-                bg-emerald-600/20
-                border
-                border-emerald-500/30
-                rounded-xl
-                p-4
-                text-center
-                font-bold
-              "
-            >
+            <div className="mt-6 bg-emerald-600/20 border border-emerald-500/30 rounded-xl p-4 text-center font-bold">
               {message}
             </div>
           )}
@@ -782,7 +443,6 @@ export default function Control() {
       </div>
 
       {/* Add Service Dialog */}
-
       <Dialog
         open={openAdd}
         onClose={handleCloseAdd}
@@ -811,13 +471,7 @@ export default function Control() {
         >
           إضافة خدمة
         </DialogTitle>
-
-        <DialogContent
-          sx={{
-            backgroundColor: "#0f172a",
-            color: "#fff",
-          }}
-        >
+        <DialogContent sx={{ backgroundColor: "#0f172a", color: "#fff" }}>
           <div className="pt-4">
             <TextField
               select
@@ -830,31 +484,13 @@ export default function Control() {
                   color: "#fff",
                   backgroundColor: "#1e293b",
                   borderRadius: "12px",
-
-                  "& fieldset": {
-                    borderColor: "#475569",
-                  },
-
-                  "&:hover fieldset": {
-                    borderColor: "#22d3ee",
-                  },
-
-                  "&.Mui-focused fieldset": {
-                    borderColor: "#22d3ee",
-                  },
+                  "& fieldset": { borderColor: "#475569" },
+                  "&:hover fieldset": { borderColor: "#22d3ee" },
+                  "&.Mui-focused fieldset": { borderColor: "#22d3ee" },
                 },
-
-                "& .MuiInputLabel-root": {
-                  color: "#fff",
-                },
-
-                "& .MuiSelect-select": {
-                  color: "#fff",
-                },
-
-                "& .MuiSelect-icon": {
-                  color: "#fff",
-                },
+                "& .MuiInputLabel-root": { color: "#fff" },
+                "& .MuiSelect-select": { color: "#fff" },
+                "& .MuiSelect-icon": { color: "#fff" },
               }}
               slotProps={{
                 select: {
@@ -863,17 +499,10 @@ export default function Control() {
                       sx: {
                         bgcolor: "#0f172a",
                         color: "#fff",
-
                         "& .MuiMenuItem-root": {
                           color: "#fff",
-
-                          "&:hover": {
-                            bgcolor: "#1e293b",
-                          },
-
-                          "&.Mui-selected": {
-                            bgcolor: "#164e63",
-                          },
+                          "&:hover": { bgcolor: "#1e293b" },
+                          "&.Mui-selected": { bgcolor: "#164e63" },
                         },
                       },
                     },
@@ -887,7 +516,6 @@ export default function Control() {
                 </MenuItem>
               ))}
             </TextField>
-
             {selectedType && (
               <div className="mt-6">
                 <TextField
@@ -901,51 +529,25 @@ export default function Control() {
                       color: "#fff",
                       backgroundColor: "#1e293b",
                       borderRadius: "12px",
-
                       "& input": {
                         color: "#fff",
                         textAlign: "right",
-
-                        "&::placeholder": {
-                          color: "#94a3b8",
-                          opacity: 1,
-                        },
+                        "&::placeholder": { color: "#94a3b8", opacity: 1 },
                       },
-
-                      "& fieldset": {
-                        borderColor: "#475569",
-                      },
-
-                      "&:hover fieldset": {
-                        borderColor: "#22d3ee",
-                      },
-
-                      "&.Mui-focused fieldset": {
-                        borderColor: "#22d3ee",
-                      },
+                      "& fieldset": { borderColor: "#475569" },
+                      "&:hover fieldset": { borderColor: "#22d3ee" },
+                      "&.Mui-focused fieldset": { borderColor: "#22d3ee" },
                     },
-
-                    "& .MuiInputLabel-root": {
-                      color: "#fff",
-                    },
-
-                    "& .MuiInputLabel-root.Mui-focused": {
-                      color: "#22d3ee",
-                    },
+                    "& .MuiInputLabel-root": { color: "#fff" },
+                    "& .MuiInputLabel-root.Mui-focused": { color: "#22d3ee" },
                   }}
                 />
               </div>
             )}
           </div>
         </DialogContent>
-
         <DialogActions
-          sx={{
-            backgroundColor: "#0f172a",
-            px: 3,
-            pb: 3,
-            gap: 2,
-          }}
+          sx={{ backgroundColor: "#0f172a", px: 3, pb: 3, gap: 2 }}
         >
           <Button
             onClick={handleCloseAdd}
@@ -953,15 +555,11 @@ export default function Control() {
               color: "#fff",
               backgroundColor: "#ef4444",
               fontWeight: "bold",
-
-              "&:hover": {
-                backgroundColor: "#dc2626",
-              },
+              "&:hover": { backgroundColor: "#dc2626" },
             }}
           >
             إلغاء
           </Button>
-
           <Button
             variant="contained"
             onClick={handleAddService}
@@ -970,16 +568,15 @@ export default function Control() {
               borderRadius: "10px",
               fontWeight: "bold",
               px: 3,
-
-              "&:hover": {
-                bgcolor: "#326b50",
-              },
+              "&:hover": { bgcolor: "#326b50" },
             }}
           >
             إضافة
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
       <Dialog
         open={openDelete}
         onClose={handleCloseDelete}
@@ -1006,35 +603,18 @@ export default function Control() {
         >
           تأكيد الحذف
         </DialogTitle>
-
-        <DialogContent
-          sx={{
-            color: "#cbd5e1",
-            textAlign: "center",
-            pb: 2,
-          }}
-        >
+        <DialogContent sx={{ color: "#cbd5e1", textAlign: "center", pb: 2 }}>
           <div className="text-lg">هل أنت متأكد من حذف الخدمة؟</div>
-
           {serviceToDelete && (
             <div className="mt-3 text-xl font-bold text-red-400">
               {serviceToDelete.name}
             </div>
           )}
-
           <div className="mt-2 text-sm text-slate-400">
             لا يمكن التراجع عن هذا الإجراء.
           </div>
         </DialogContent>
-
-        <DialogActions
-          sx={{
-            justifyContent: "center",
-            gap: 2,
-            px: 3,
-            pb: 3,
-          }}
-        >
+        <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
           <Button
             onClick={handleCloseDelete}
             sx={{
@@ -1043,14 +623,11 @@ export default function Control() {
               borderRadius: "10px",
               fontWeight: "bold",
               px: 3,
-              "&:hover": {
-                backgroundColor: "#64748b",
-              },
+              "&:hover": { backgroundColor: "#64748b" },
             }}
           >
             إلغاء
           </Button>
-
           <Button
             variant="contained"
             onClick={confirmDeleteService}
@@ -1061,15 +638,8 @@ export default function Control() {
               borderRadius: "10px",
               fontWeight: "bold",
               px: 3,
-
-              "& .MuiButton-startIcon": {
-                marginRight: "8px",
-                marginLeft: 0,
-              },
-
-              "&:hover": {
-                backgroundColor: "#b91c1c",
-              },
+              "& .MuiButton-startIcon": { marginRight: "8px", marginLeft: 0 },
+              "&:hover": { backgroundColor: "#b91c1c" },
             }}
           >
             حذف

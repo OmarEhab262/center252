@@ -106,6 +106,8 @@ export default function GuardSection({
               rounded-xl
               p-4
               flex
+              flex-wrap
+              justify-center
               gap-3
               items-center
             "
@@ -113,7 +115,7 @@ export default function GuardSection({
             {/* المركز */}
             <p className="w-20 text-center font-bold">{item.position}</p>
 
-            <div className="flex-1 flex-wrap flex gap-3 items-center">
+            <div className="flex-1 flex-wrap-reverse flex gap-3 items-center justify-center">
               <CustomPersonSelect
                 names={names}
                 value={item.id}

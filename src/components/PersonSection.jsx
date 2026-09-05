@@ -186,7 +186,7 @@ export default function PersonSection({
     <div className="bg-white/5 rounded-2xl p-5 mt-10">
       <h2 className="text-3xl text-center font-bold mb-5">{title}</h2>
 
-      <div className="flex gap-3 items-center">
+      <div className="flex flex-wrap-reverse justify-center gap-3 items-center">
         <PersonSelect
           names={names}
           value={person.id || ""}

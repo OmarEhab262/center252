@@ -1,41 +1,36 @@
 import { useEffect, useState } from "react";
-
 import { Button, IconButton } from "@mui/material";
-
 import LoginIcon from "@mui/icons-material/Login";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-
 import { useNavigate } from "react-router-dom";
-
 import toast from "react-hot-toast";
-
 import { encryptText, decryptText } from "../utils/authCrypto";
+import { getItem, setItem, removeItem } from "../utils/storage";
+
 export default function Login() {
   const navigate = useNavigate();
-
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
-
   const [showPassword, setShowPassword] = useState(false);
+  const [ready, setReady] = useState(false);
 
-  // إنشاء الحساب الافتراضي أول مرة فقط
+  // إنشاء الحساب الافتراضي أول مرة فقط + حذف الجلسة الحالية عند فتح صفحة Login
   useEffect(() => {
-    const account = localStorage.getItem("account");
-
-    if (!account) {
-      const defaultAccount = {
-        email: "admin",
-        password: encryptText("123456"),
-      };
-
-      localStorage.setItem("account", JSON.stringify(defaultAccount));
-    }
-
-    // حذف الجلسة الحالية عند فتح صفحة Login
-    localStorage.removeItem("auth");
+    (async () => {
+      const account = await getItem("account");
+      if (!account) {
+        const defaultAccount = {
+          email: "admin",
+          password: encryptText("123456"),
+        };
+        await setItem("account", JSON.stringify(defaultAccount));
+      }
+      await removeItem("auth");
+      setReady(true);
+    })();
   }, []);
 
   const handleChange = (field) => (e) => {
@@ -45,9 +40,8 @@ export default function Login() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
     const email = form.email.trim().toLowerCase();
     const password = form.password;
 
@@ -56,8 +50,7 @@ export default function Login() {
       return;
     }
 
-    const savedAccount = localStorage.getItem("account");
-
+    const savedAccount = await getItem("account");
     if (!savedAccount) {
       toast.error("بيانات الحساب غير موجودة");
       return;
@@ -73,7 +66,6 @@ export default function Login() {
 
     // فك تشفير كلمة السر
     const storedPassword = decryptText(account.password);
-
     if (password !== storedPassword) {
       toast.error("كلمة السر غير صحيحة");
       return;
@@ -86,43 +78,31 @@ export default function Login() {
       role: "admin",
       enteredAt: Date.now(),
     };
-
-    localStorage.setItem("auth", JSON.stringify(authData));
-
+    await setItem("auth", JSON.stringify(authData));
     toast.success("تم تسجيل الدخول بنجاح");
-
     navigate("/", { replace: true });
   };
-  const handleGuestLogin = () => {
-    const guestData = {
-      name: "زائر",
-      role: "guest",
-      enteredAt: Date.now(),
-    };
 
-    localStorage.setItem("auth", JSON.stringify(guestData));
-
+  const handleGuestLogin = async () => {
+    await setItem("auth");
     toast.success("تم الدخول كزائر");
-
     navigate("/", { replace: true });
   };
+
+  if (!ready) return null;
 
   return (
     <div className="min-h-screen bg-linear-to-br from-cyan-900 via-slate-900 to-black text-white py-10 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="bg-white/10 rounded-3xl shadow-2xl p-8 backdrop-blur">
-          {/* Title */}
           <h1 className="text-3xl leading-tight font-black text-center mb-10">
             تسجيل الدخول
           </h1>
-
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            {/* Username */}
             <div className="w-full bg-white/5 rounded-2xl p-5 shadow-lg">
               <label className="block text-lg font-bold mb-3 text-end">
                 اسم المستخدم
               </label>
-
               <input
                 type="text"
                 dir="ltr"
@@ -132,13 +112,10 @@ export default function Login() {
                 placeholder="اسم المستخدم"
               />
             </div>
-
-            {/* Password */}
             <div className="w-full bg-white/5 rounded-2xl p-5 shadow-lg">
               <label className="block text-lg font-bold mb-3 text-end">
                 كلمة السر
               </label>
-
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -148,7 +125,6 @@ export default function Login() {
                   className="w-full rounded-xl p-3 text-end bg-slate-800 text-white text-lg font-bold placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   placeholder="••••••••"
                 />
-
                 <IconButton
                   onClick={() => setShowPassword((prev) => !prev)}
                   type="button"
@@ -171,8 +147,6 @@ export default function Login() {
                 </IconButton>
               </div>
             </div>
-
-            {/* Login Button */}
             <Button
               type="submit"
               variant="contained"
@@ -200,7 +174,6 @@ export default function Login() {
             >
               دخول
             </Button>
-
             <Button
               type="button"
               variant="contained"
