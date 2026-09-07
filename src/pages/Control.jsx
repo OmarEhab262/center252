@@ -90,7 +90,7 @@ export default function Control() {
   const [serviceName, setServiceName] = useState("");
   const [message, setMessage] = useState("");
 
-  // أنواع الخدمات
+  // أنواع That's One!الخدمات
   const serviceTypes = [
     { value: "officers", label: "ضباط" },
     { value: "nco", label: "صف ضباط" },
@@ -403,33 +403,57 @@ export default function Control() {
                 إضافة
               </Button>
             </div>
+
             {services.length === 0 ? (
               <div className="text-center bg-slate-900/60 rounded-xl p-8 text-slate-300">
                 لا توجد خدمات مضافة حتى الآن
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {services.map((service) => (
-                  <div
-                    key={service.id}
-                    className="bg-slate-900/80 border border-slate-700 rounded-2xl p-5 shadow-lg"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-cyan-400 font-bold text-sm mb-2">
-                          {getTypeName(service.type)}
-                        </div>
-                        <div className="text-xl font-bold">{service.name}</div>
+              <div className="flex flex-col gap-8">
+                {serviceTypes.map((type, typeIndex) => {
+                  const typeServices = services.filter(
+                    (service) => service.type === type.value,
+                  );
+                  if (typeServices.length === 0) return null;
+
+                  return (
+                    <div key={type.value}>
+                      {typeIndex > 0 && (
+                        <div className="border-t border-slate-700 mb-8" />
+                      )}
+
+                      <h3 className="text-xl font-black text-cyan-300 mb-5">
+                        {type.label}
+                      </h3>
+
+                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {typeServices.map((service) => (
+                          <div
+                            key={service.id}
+                            className="bg-slate-900/80 border border-slate-700 rounded-2xl p-5 shadow-lg"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="text-cyan-400 font-bold text-sm mb-2">
+                                  {getTypeName(service.type)}
+                                </div>
+                                <div className="text-xl font-bold">
+                                  {service.name}
+                                </div>
+                              </div>
+                              <IconButton
+                                onClick={() => handleDeleteService(service)}
+                                sx={{ color: "#ef4444" }}
+                              >
+                                <Delete />
+                              </IconButton>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <IconButton
-                        onClick={() => handleDeleteService(service)}
-                        sx={{ color: "#ef4444" }}
-                      >
-                        <Delete />
-                      </IconButton>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

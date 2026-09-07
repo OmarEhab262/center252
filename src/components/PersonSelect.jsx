@@ -8,12 +8,56 @@ export default function PersonSelect({
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
+  const rankOrder = [
+    "لواء أح",
+    "لواء",
+    "عميد أح",
+    "عميد",
+    "مقدم أح",
+    "مقدم",
+    "رائد أح",
+    "رائد",
+    "نقيب",
+    "ملازم.أ",
+    "ملازم",
+    "مساعد.أ",
+    "مساعد",
+    "رقيب.أ",
+    "رقيب",
+    "عريف",
+    "رقيب مجند",
+    "عريف مجند",
+    "جندى",
+    "---",
+  ];
 
   // Filter names according to the required ranks
-  const filteredNames = filterRanks
-    ? names.filter((person) => filterRanks.includes(person.rank))
-    : names;
+  const filteredNames = (
+    filterRanks
+      ? names.filter((person) => filterRanks.includes(person.rank))
+      : names
+  )
+    .slice()
+    .sort((a, b) => {
+      const rankA = (a.rank || "").trim();
+      const rankB = (b.rank || "").trim();
+      const indexA = rankOrder.indexOf(rankA);
+      const indexB = rankOrder.indexOf(rankB);
+      const safeA = indexA === -1 ? rankOrder.length : indexA;
+      const safeB = indexB === -1 ? rankOrder.length : indexB;
+      return safeA - safeB;
+    });
 
+  // سطر مؤقت للفحص - افتح الـ Console وشوف الناتج
+  console.log(
+    filteredNames.map((p) => ({
+      name: p.name,
+      rank: p.rank,
+      rankLength: p.rank?.length,
+      rankCharCodes: p.rank?.split("").map((c) => c.charCodeAt(0)),
+      foundIndex: rankOrder.indexOf((p.rank || "").trim()),
+    })),
+  );
   const selectedPerson = names.find(
     (person) => String(person.id) === String(value),
   );

@@ -154,31 +154,45 @@ const Add = () => {
     <div className="min-h-screen bg-linear-to-br from-cyan-900 via-slate-900 to-black text-white py-5 sm:py-10 px-3">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white/10 rounded-3xl shadow-2xl p-5 sm:p-8 backdrop-blur">
-          <Button
-            variant="contained"
-            component={Link}
-            to="/"
-            startIcon={<ArrowBack sx={{ fontSize: 23 }} />}
-            sx={{
-              color: "#fff",
-              bgcolor: "#334155",
-              borderRadius: "10px",
-              px: 2.5,
-              py: 1,
-              fontWeight: "bold",
-              gap: 1,
-              "&:hover": {
-                bgcolor: "#475569",
-              },
-            }}
-          >
-            رجوع
-          </Button>
+        <div className="bg-white/10 rounded-3xl shadow-2xl p-5 sm:p-8 backdrop-blur border border-white/10">
+          <div className="flex items-center justify-between gap-4">
+            <Button
+              variant="outlined"
+              component={Link}
+              to="/"
+              startIcon={<ArrowBack sx={{ fontSize: 20 }} />}
+              sx={{
+                color: "#e2e8f0",
+                borderColor: "rgba(255,255,255,0.25)",
+                bgcolor: "rgba(15,23,42,0.4)",
+                borderRadius: "12px",
+                px: { xs: 2, sm: 2.5 },
+                py: 1,
+                fontWeight: "bold",
+                textTransform: "none",
+                gap: 1,
+                flexShrink: 0,
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  bgcolor: "rgba(51,65,85,0.6)",
+                  borderColor: "#22d3ee",
+                  color: "#22d3ee",
+                  transform: "translateX(4px)",
+                },
+              }}
+            >
+              رجوع
+            </Button>
 
-          <h1 className="text-2xl sm:text-3xl lg:text-5xl font-black text-center leading-relaxed">
-            اضــــافة اســـــماء خدمــــــــــــة {unitName}
-          </h1>
+            <div className="flex items-center justify-center gap-3 flex-1">
+              <span className="text-3xl sm:text-4xl">👥</span>
+              <h1 className="text-lg sm:text-3xl lg:text-4xl font-black text-center leading-relaxed bg-gradient-to-l from-cyan-300 to-white bg-clip-text text-transparent">
+                إضافة أسماء خدمة {unitName}
+              </h1>
+            </div>
+
+            <div className="w-20 sm:w-24 flex-shrink-0" />
+          </div>
         </div>
 
         {/* Add Person */}
@@ -324,7 +338,7 @@ const Add = () => {
           {" "}
           <KeyboardArrowUp sx={{ fontSize: 30 }} />{" "}
         </Button>
-      )}  
+      )}
     </div>
   );
 };

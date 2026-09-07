@@ -26,6 +26,12 @@ const createGuardData = () => [
 ];
 
 const officerRankOrder = [
+  "لواء أح",
+  "لواء",
+  "عميد أح",
+  "عميد",
+  "عقيد أح",
+  "عقيد",
   "مقدم أح",
   "مقدم",
   "رائد أح",
@@ -39,6 +45,28 @@ const ncoRankOrder = ["مساعد.أ", "مساعد", "رقيب.أ", "رقيب", 
 const soldierRankOrder = ["رقيب مجند", "عريف مجند", "جندى"];
 
 const defaultPerson = { name: "", id: "", rank: "" };
+
+const rankEmojiMap = {
+  ملازم: "⭐",
+  "ملازم.أ": "⭐⭐",
+  نقيب: "⭐⭐⭐",
+
+  // ---------------- رائد / مقدم (النسر) ----------------
+  رائد: "🦅",
+  "رائد أح": "🦅",
+  مقدم: "⭐🦅",
+  "مقدم أح": "⭐🦅",
+
+  // ---------------- رتب عليا (السيف) ----------------
+  عقيد: "⭐⭐🦅",
+  "عقيد أح": "⭐⭐🦅",
+  عميد: "⭐⭐⭐🦅",
+  "عميد أح": "⭐⭐⭐🦅",
+  لواء: "⚔️🦅",
+  "لواء أح": "⚔️🦅",
+};
+
+const getRankEmoji = (rank) => rankEmojiMap[rank] || "⭐";
 
 // ملحوظة: تم حذف قسم "السلاح" (weapon) بالكامل من نموذج البيانات
 // بناءً على طلبك. لو فيه أماكن تانية بتشير له (زي components/Tables.jsx
@@ -390,9 +418,7 @@ export default function Home() {
               );
 
             const isLastOddItem =
-              services.length > 2 &&
-              services.length % 2 === 1 &&
-              index === services.length - 1;
+              services.length % 2 === 1 && index === services.length - 1;
 
             return (
               <div
@@ -454,17 +480,33 @@ export default function Home() {
     <div className="min-h-screen bg-linear-to-br from-cyan-900 via-slate-900 to-black text-white py-10">
       <div className="max-w-7xl mx-auto px-4">
         <div className="bg-white/10 rounded-3xl shadow-2xl p-8 backdrop-blur">
-          <h1 className="text-5xl leading-tight font-black text-center mb-10">
-            خدمــــــــــــة {unitName}
-          </h1>
+          {/* Title */}
+          <div className="text-center mb-10">
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <span className="text-3xl sm:text-4xl">🎖️</span>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl leading-tight font-black bg-gradient-to-l from-cyan-300 via-white to-cyan-300 bg-clip-text text-transparent">
+                خدمة {unitName}
+              </h1>
+              <span className="text-3xl sm:text-4xl">🎖️</span>
+            </div>
+            <div className="flex items-center justify-center gap-2">
+              <div className="h-[2px] w-16 bg-gradient-to-l from-transparent to-cyan-400" />
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              <div className="h-[2px] w-16 bg-gradient-to-r from-transparent to-cyan-400" />
+            </div>
+          </div>
+
           {/* Date */}
           <div className="flex justify-center items-center">
-            <div className="md:w-[50%] w-full flex flex-wrap gap-5 items-center justify-center">
-              <div className="w-[90%] bg-white/10 rounded-xl p-3 text-center text-xl font-bold">
-                {formatArabicDay(selectedDate)} -{" "}
-                {formatArabicDate(selectedDate)}
+            <div className=" w-full flex flex-col sm:flex-row gap-4 items-stretch justify-center bg-white/5 border border-white/10 rounded-2xl p-4 shadow-lg">
+              <div className="flex-1 flex flex-col justify-center bg-slate-800/60 border border-slate-600/50 rounded-xl p-4 text-center">
+                <span className="text-lg sm:text-xl font-bold">
+                  {formatArabicDay(selectedDate)} -{" "}
+                  {formatArabicDate(selectedDate)}
+                </span>
               </div>
-              <div className="flex items-center justify-center md:w-[40%] w-full">
+
+              <div className="flex items-center justify-center">
                 <DatePicker
                   selected={selectedDate}
                   onChange={(date) => {
@@ -479,9 +521,10 @@ export default function Home() {
                   customInput={
                     <button
                       type="button"
-                      className="cursor-pointer bg-cyan-600 hover:bg-cyan-700 px-5 py-3 rounded-xl text-white text-xl font-bold shadow-lg"
+                      className="cursor-pointer w-full sm:w-auto h-full bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 transition-colors px-6 py-3 rounded-xl text-white text-lg font-bold shadow-lg flex items-center justify-center gap-2"
                     >
-                      📅 اختيار التاريخ
+                      <span>📅</span>
+                      <span>اختيار التاريخ</span>
                     </button>
                   }
                 />
@@ -494,11 +537,20 @@ export default function Home() {
               <PersonSection
                 title={
                   <div className="flex items-center justify-center gap-3 mb-4">
-                    <span className="text-2xl">⭐</span>
+                    {/* الشارة اليمين - عادية */}
+                    <span className="text-2xl">
+                      {getRankEmoji(form.leader?.rank)}
+                    </span>
                     <label className="text-2xl font-black text-cyan-300">
                       قائد {unitName}
                     </label>
-                    <span className="text-2xl">⭐</span>
+                    {/* الشارة الشمال - معكوسة أفقيًا */}
+                    <span
+                      className="text-2xl inline-block"
+                      style={{ transform: "scaleX(-1)" }}
+                    >
+                      {getRankEmoji(form.leader?.rank)}
+                    </span>
                   </div>
                 }
                 section="leader"
@@ -561,7 +613,6 @@ export default function Home() {
                 : createGuardData();
 
               const isLastOddItem =
-                dynamicServices.length > 2 &&
                 dynamicServices.length % 2 === 1 &&
                 index === dynamicServices.length - 1;
 

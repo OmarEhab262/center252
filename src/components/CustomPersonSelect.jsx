@@ -218,7 +218,7 @@ export default function CustomPersonSelect({
               قائمة الأشخاص
           ========================== */}
 
-          {names.map((person) => {
+          {[...names].reverse().map((person) => {
             const id = String(person.id);
             const count = usageCount[id] || 0;
             const color = duplicateColorMap[id];
@@ -229,38 +229,33 @@ export default function CustomPersonSelect({
                 type="button"
                 onClick={() => handleSelect(person.id)}
                 className="
-                  w-full
-                  px-4
-                  py-3
-                  text-right
-                  text-white
-                  hover:bg-slate-700
-                  transition
-                  flex
-                  items-center
-                  justify-between
-                  gap-3
-                "
+        w-full
+        px-4
+        py-3
+        text-right
+        text-white
+        hover:bg-slate-700
+        transition
+        flex
+        items-center
+        justify-between
+        gap-3
+      "
               >
                 <span className="truncate">
                   {person.name} - {person.rank}
                 </span>
 
-                {/* =========================
-                    الدائرة تظهر فقط إذا كان
-                    الاسم مستخدمًا أكثر من مرة
-                ========================== */}
-
                 {count > 1 && (
                   <span
                     className={`
-                      w-3
-                      h-3
-                      rounded-full
-                      flex-shrink-0
-                      shadow-lg
-                      ${color}
-                    `}
+            w-3
+            h-3
+            rounded-full
+            flex-shrink-0
+            shadow-lg
+            ${color}
+          `}
                   />
                 )}
               </button>
