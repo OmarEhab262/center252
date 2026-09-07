@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { Toaster } from "react-hot-toast";
 
@@ -17,7 +17,7 @@ export default function App() {
   const users = getUsers();
 
   return (
-    <HashRouter>
+    <BrowserRouter>
       <Toaster
         position="top-center"
         toastOptions={{
@@ -57,6 +57,6 @@ export default function App() {
         {/* Unknown URLs */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
