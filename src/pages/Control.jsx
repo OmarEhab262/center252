@@ -214,28 +214,62 @@ export default function Control() {
       <div className="max-w-6xl mx-auto">
         <div className="bg-white/10 rounded-3xl shadow-2xl p-8 backdrop-blur">
           {/* Header */}
-          <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-2 sm:gap-4 mb-8 sm:mb-10">
+            {/* Back Button */}
             <Button
+              variant="outlined"
               component={Link}
               to="/"
-              startIcon={<ArrowBack sx={{ color: "#fff" }} />}
+              startIcon={<ArrowBack sx={{ fontSize: 20 }} />}
               sx={{
-                color: "#fff",
-                bgcolor: "#334155",
-                borderRadius: "10px",
-                px: 2.5,
-                py: 1,
+                minWidth: { xs: "44px", sm: "auto" },
+                width: { xs: "44px", sm: "auto" },
+                height: { xs: "44px", sm: "auto" },
+                color: "#e2e8f0",
+                borderColor: "rgba(255,255,255,0.25)",
+                bgcolor: "rgba(15,23,42,0.4)",
+                borderRadius: "12px",
+                px: { xs: 1, sm: 2.5 },
+                py: { xs: 1, sm: 1 },
                 fontWeight: "bold",
-                "&:hover": { bgcolor: "#475569" },
+                textTransform: "none",
+                gap: 1,
+                flexShrink: 0,
+                transition: "all 0.2s ease",
+
+                // Hide text on mobile
+                "& .MuiButton-startIcon": {
+                  margin: { xs: 0, sm: "0 8px 0 0" },
+                },
+
+                "&:hover": {
+                  bgcolor: "rgba(51,65,85,0.6)",
+                  borderColor: "#22d3ee",
+                  color: "#22d3ee",
+                  transform: "translateX(4px)",
+                },
               }}
             >
-              رجوع
+              <span className="hidden sm:inline">رجوع</span>
             </Button>
-            <div className="flex items-center gap-3">
-              <Settings sx={{ fontSize: 42, color: "#67e8f9" }} />
-              <h1 className="text-4xl font-black">التحكم</h1>
+
+            {/* Title */}
+            <div className="flex items-center justify-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <Settings
+                sx={{
+                  fontSize: { xs: 30, sm: 42 },
+                  color: "#67e8f9",
+                  flexShrink: 0,
+                }}
+              />
+
+              <h1 className="text-2xl sm:text-4xl font-black text-center leading-tight truncate">
+                التحكم
+              </h1>
             </div>
-            <div className="w-20" />
+
+            {/* Empty space - desktop only */}
+            <div className="hidden sm:block w-20 flex-shrink-0" />
           </div>
 
           {/* Login Settings */}

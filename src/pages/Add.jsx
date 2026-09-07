@@ -154,25 +154,35 @@ const Add = () => {
     <div className="min-h-screen bg-linear-to-br from-cyan-900 via-slate-900 to-black text-white py-5 sm:py-10 px-3">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white/10 rounded-3xl shadow-2xl p-5 sm:p-8 backdrop-blur border border-white/10">
-          <div className="flex items-center justify-between gap-4">
+        <div className="bg-white/10 rounded-3xl shadow-2xl p-4 sm:p-8 backdrop-blur border border-white/10">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Back Button */}
             <Button
               variant="outlined"
               component={Link}
               to="/"
               startIcon={<ArrowBack sx={{ fontSize: 20 }} />}
               sx={{
+                minWidth: { xs: "44px", sm: "auto" },
+                width: { xs: "44px", sm: "auto" },
+                height: { xs: "44px", sm: "auto" },
                 color: "#e2e8f0",
                 borderColor: "rgba(255,255,255,0.25)",
                 bgcolor: "rgba(15,23,42,0.4)",
                 borderRadius: "12px",
-                px: { xs: 2, sm: 2.5 },
-                py: 1,
+                px: { xs: 1, sm: 2.5 },
+                py: { xs: 1, sm: 1 },
                 fontWeight: "bold",
                 textTransform: "none",
                 gap: 1,
                 flexShrink: 0,
                 transition: "all 0.2s ease",
+
+                // Hide text on mobile
+                "& .MuiButton-startIcon": {
+                  margin: { xs: 0, sm: "0 8px 0 0" },
+                },
+
                 "&:hover": {
                   bgcolor: "rgba(51,65,85,0.6)",
                   borderColor: "#22d3ee",
@@ -181,17 +191,37 @@ const Add = () => {
                 },
               }}
             >
-              رجوع
+              <span className="hidden sm:inline">رجوع</span>
             </Button>
 
-            <div className="flex items-center justify-center gap-3 flex-1">
-              <span className="text-3xl sm:text-4xl">👥</span>
-              <h1 className="text-lg sm:text-3xl lg:text-4xl font-black text-center leading-relaxed bg-gradient-to-l from-cyan-300 to-white bg-clip-text text-transparent">
+            {/* Title */}
+            <div className="flex items-center justify-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <span className="text-2xl sm:text-4xl flex-shrink-0">👥</span>
+
+              <h1
+                className="
+          text-base
+          xs:text-lg
+          sm:text-3xl
+          lg:text-4xl
+          font-black
+          text-center
+          leading-snug
+          sm:leading-relaxed
+          bg-gradient-to-l
+          from-cyan-300
+          to-white
+          bg-clip-text
+          text-transparent
+          break-words
+        "
+              >
                 إضافة أسماء خدمة {unitName}
               </h1>
             </div>
 
-            <div className="w-20 sm:w-24 flex-shrink-0" />
+            {/* Empty space - desktop only */}
+            <div className="hidden sm:block w-24 flex-shrink-0" />
           </div>
         </div>
 
