@@ -128,8 +128,7 @@ export default function GuardSection({
               {item.rank && (
                 <div
                   className="
-                    hidden
-                    sm:block
+                  
                     bg-slate-700
                     px-3
                     py-2
