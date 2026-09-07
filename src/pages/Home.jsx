@@ -14,7 +14,7 @@ import PersonSelect from "../components/PersonSelect";
 import PersonSection from "../components/PersonSection";
 import { formatArabicDate, formatArabicDay } from "../utils/date";
 import { getJSON, setJSON, getItem, removeItem } from "../utils/storage";
-
+import { useNavigate } from "react-router-dom";
 // ============================================================
 // Constants
 // ============================================================
@@ -379,11 +379,12 @@ export default function Home() {
     soldierRankOrder.includes(person.rank),
   );
 
+  const navigate = useNavigate();
+
   const handleLogout = async () => {
     await removeItem("auth");
-    window.location.href = "/login";
+    navigate("/login", { replace: true });
   };
-
   const renderPersonServices = (services, title) => {
     if (services.length === 0) return null;
 
