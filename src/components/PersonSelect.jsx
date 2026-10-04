@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import {useState, useEffect, useRef} from "react";
 
 export default function PersonSelect({
   names = [],
@@ -114,7 +114,7 @@ export default function PersonSelect({
       >
         <span className="truncate">
           {selectedPerson
-            ? `${selectedPerson.name} - ${selectedPerson.rank}`
+            ? `${selectedPerson.name} `
             : value === "---"
               ? "---"
               : "اختر الاسم"}

@@ -1,149 +1,149 @@
-import { useRef, useState } from "react";
-import { Button } from "@mui/material";
+import { useState } from "react";
+
+import {
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+} from "@mui/material";
+
 import Tables from "../components/Tables";
+
 import LocalFireDepartmentIcon from "@mui/icons-material/LocalFireDepartment";
+
+import CopyrightOutlinedIcon from "@mui/icons-material/CopyrightOutlined";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+
 import PrintIcon from "@mui/icons-material/Print";
+
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import html2canvas from "html2canvas-pro";
-import jsPDF from "jspdf";
+
+import DescriptionIcon from "@mui/icons-material/Description";
+
 import toast from "react-hot-toast";
+
 import ArabicNumbers from "../components/ArabicNumbers";
+
 export default function Show() {
-  // The table displayed on the screen
-  const captureRef = useRef(null);
+  // =========================
+  // STATES
+  // =========================
 
-  // The 4-table A4 layout used for PDF
-  const pdfRef = useRef(null);
+  const [pageCount, setPageCount] = useState(1);
 
-  const [generating, setGenerating] = useState(false);
+  const [pageDialogOpen, setPageDialogOpen] = useState(false);
+  const [pageInput, setPageInput] = useState("1");
+
+  // =========================
+  // PDF
+  // =========================
+  const handleSavePdf = () => {
+    document.body.classList.add("pdf-mode");
+
+    const cleanup = () => {
+      document.body.classList.remove("pdf-mode");
+      window.removeEventListener("afterprint", cleanup);
+    };
+
+    window.addEventListener("afterprint", cleanup);
+
+    window.print();
+  };
 
   // =========================
   // PRINT
   // =========================
+
   const handlePrint = () => {
-    if (window.electronAPI) {
-      window.electronAPI.print();
-    } else {
-      window.print();
-    }
+    document.body.classList.add("print-mode");
+
+    const cleanup = () => {
+      document.body.classList.remove("print-mode");
+      window.removeEventListener("afterprint", cleanup);
+    };
+
+    window.addEventListener("afterprint", cleanup);
+
+    window.print();
   };
 
   // =========================
-  // SAVE PDF
+  // CHANGE PAGE COUNT
   // =========================
-  const handleSavePdf = async () => {
-    if (!pdfRef.current) {
-      toast.error("لم يتم العثور على محتوى PDF");
+
+  const handlePageCount = () => {
+    setPageInput(String(pageCount));
+    setPageDialogOpen(true);
+  };
+
+  const handleConfirmPageCount = () => {
+    const number = Number(pageInput);
+
+    if (!Number.isInteger(number) || number <= 0) {
+      toast.error("يجب إدخال رقم صحيح");
       return;
     }
 
-    setGenerating(true);
-
-    try {
-      await toast.promise(
-        (async () => {
-          const element = pdfRef.current;
-
-          // انتظار تحميل الخطوط
-          if (document.fonts) {
-            await document.fonts.ready;
-
-            try {
-              await document.fonts.load('400 16px "Cairo"');
-              await document.fonts.load('600 16px "Cairo"');
-              await document.fonts.load('700 16px "Cairo"');
-              await document.fonts.load('900 16px "Cairo"');
-            } catch (error) {
-              console.warn("Cairo font loading warning:", error);
-            }
-          }
-
-          // انتظار اكتمال الـ rendering
-          await new Promise((resolve) => {
-            requestAnimationFrame(() => {
-              requestAnimationFrame(resolve);
-            });
-          });
-
-          // إنشاء الصورة
-          const canvas = await html2canvas(element, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: "#ffffff",
-            logging: false,
-          });
-
-          const imgData = canvas.toDataURL("image/png");
-
-          // A4 Landscape
-          const pdf = new jsPDF({
-            orientation: "landscape",
-            unit: "mm",
-            format: "a4",
-          });
-
-          const pageWidth = 297;
-          const pageHeight = 210;
-
-          const margin = 5;
-
-          const availableWidth = pageWidth - margin * 2;
-          const availableHeight = pageHeight - margin * 2;
-
-          const imageRatio = canvas.width / canvas.height;
-
-          let imgWidth = availableWidth;
-          let imgHeight = imgWidth / imageRatio;
-
-          if (imgHeight > availableHeight) {
-            imgHeight = availableHeight;
-            imgWidth = imgHeight * imageRatio;
-          }
-
-          const x = (pageWidth - imgWidth) / 2;
-          const y = (pageHeight - imgHeight) / 2;
-
-          pdf.addImage(imgData, "PNG", x, y, imgWidth, imgHeight);
-
-          // اسم الملف
-          const today = new Date();
-
-          const day = String(today.getDate()).padStart(2, "0");
-          const month = String(today.getMonth() + 1).padStart(2, "0");
-          const year = today.getFullYear();
-
-          const fileName = `خدمة ${day}-${month}-${year}.pdf`;
-
-          pdf.save(fileName);
-        })(),
-        {
-          loading: "جارٍ إنشاء PDF...",
-          success: "تم إنشاء PDF بنجاح",
-          error: "حدث خطأ أثناء إنشاء PDF",
-        },
-      );
-    } catch (error) {
-      console.error("PDF generation failed:", error);
-      toast.error("حدث خطأ أثناء إنشاء PDF");
-    } finally {
-      setGenerating(false);
+    if (number !== 1 && number % 2 !== 0) {
+      toast.error("عدد الصفحات يجب أن يكون 1 أو عددًا زوجيًا");
+      return;
     }
+
+    setPageCount(number);
+    setPageDialogOpen(false);
+
+    toast.success(`تم تحديد ${number} صفحة`);
+  };
+
+  // =========================
+  // COPYRIGHT
+  // =========================
+
+  const Copyright = () => {
+    return (
+      <div className="copyright-container ">
+        <div className="copyright-box ">
+          <span className="copyright-short">OE</span>
+
+          <div className="copyright-full">
+            <span>Copy Right</span>
+            <span className="copyright-divider">
+              <CopyrightOutlinedIcon sx={{ fontSize: 14 }} />
+            </span>
+            <span>OMAR</span>
+            <span>EHAB</span>
+            <span className="copyright-year">2026</span>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
     <>
       <ArabicNumbers />
 
+      {/* =========================
+          SCREEN
+      ========================= */}
+
       <div className="screen-content min-h-screen bg-gray-100 p-6">
-        {/* Buttons */}
-        <div className="flex justify-center items-center gap-3 mb-6">
+        {/* =========================
+            BUTTONS
+        ========================= */}
+
+        <div className="flex justify-center items-center flex-wrap gap-3 mb-6">
+          {/* BACK */}
+
           <Button
             variant="contained"
             color="inherit"
             startIcon={<ArrowBackIcon />}
             onClick={() => window.history.back()}
             sx={{
+              color: "black",
               borderRadius: "12px",
               px: 3,
               py: 1.2,
@@ -153,6 +153,26 @@ export default function Show() {
           >
             رجوع
           </Button>
+
+          {/* PDF */}
+
+          <Button
+            variant="contained"
+            startIcon={<PictureAsPdfIcon />}
+            onClick={handleSavePdf}
+            sx={{
+              borderRadius: "12px",
+              px: 3,
+              py: 1.2,
+              fontWeight: "bold",
+              background: "linear-gradient(135deg,#dc2626,#b91c1c)",
+              boxShadow: 3,
+            }}
+          >
+            PDF
+          </Button>
+
+          {/* PRINT */}
 
           <Button
             variant="contained"
@@ -170,104 +190,141 @@ export default function Show() {
             طباعة
           </Button>
 
+          {/* PAGE COUNT */}
+
           <Button
             variant="contained"
-            color="error"
-            startIcon={<PictureAsPdfIcon />}
-            onClick={handleSavePdf}
-            disabled={generating}
+            startIcon={<DescriptionIcon />}
+            onClick={handlePageCount}
             sx={{
               borderRadius: "12px",
               px: 3,
               py: 1.2,
               fontWeight: "bold",
-              background: "linear-gradient(135deg,#ef4444,#b91c1c)",
+              background: "linear-gradient(135deg,#16a34a,#15803d)",
               boxShadow: 3,
             }}
           >
-            {generating ? "جارٍ الحفظ..." : "حفظ PDF"}
+            عدد الصفحات: {pageCount}
           </Button>
         </div>
 
-        {/* One table shown on screen */}
-        <div className="flex justify-center items-center">
+        {/* =========================
+            TABLE SHOWN ON SCREEN
+        ========================= */}
+
+        <div className="flex justify-center items-center w-[90%] m-auto mt-12">
           <div
-            ref={captureRef}
             className="bg-white rounded-2xl shadow-2xl p-6 border border-gray-300"
             style={{
               zoom: 1.5,
             }}
           >
-            <div className="">
+            <Tables />
+
+            <Copyright />
+          </div>
+        </div>
+      </div>
+
+      <div className="print-wrapper">
+        {Array.from({ length: pageCount }).map((_, index) => (
+          <div className="print-a4-page flex flex-col" key={index}>
+            <div className="print-table-box">
               <Tables />
             </div>
 
-            <div className="copyright flex justify-center mt-4 items-center">
-              CopyRight
-              <LocalFireDepartmentIcon fontSize="small" />
-              <div className="mt-1 ml-1 ">
-                OMAR EHAB <span className="font-bold"> 2026</span>
-              </div>
-            </div>
+            <Copyright />
           </div>
-        </div>
+        ))}
       </div>
 
-      {/* =========================
-        PDF CAPTURE
-    ========================= */}
-      <div className="pdf-capture-wrapper">
-        <div ref={pdfRef} className="pdf-a4-page">
+      {/* =====================================================
+          PDF PRINT
+          نسخة واحدة فقط
+      ===================================================== */}
+
+      <div className="pdf-wrapper">
+        <div className="pdf-a4-page">
           <div className="pdf-table-box">
             <Tables />
           </div>
-
-          <div className="pdf-table-box">
-            <Tables />
-          </div>
-
-          <div className="pdf-table-box">
-            <Tables />
-          </div>
-
-          <div className="pdf-table-box">
-            <Tables />
-          </div>
-
-          <div className="pdf-copyright">
-            CopyRight
-            <LocalFireDepartmentIcon fontSize="small" />
-            <span>OMAR EHAB 2026</span>
-          </div>
+          <Copyright />
         </div>
       </div>
+      <Dialog
+        open={pageDialogOpen}
+        onClose={() => setPageDialogOpen(false)}
+        fullWidth
+        maxWidth="xs"
+        dir="rtl"
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: "bold",
+            textAlign: "center",
+          }}
+        >
+          تحديد عدد الصفحات
+        </DialogTitle>
 
-      {/* =========================
-        PRINT
-    ========================= */}
-      <div className="print-a4-page">
-        <div className="print-table-box">
-          <Tables />
-        </div>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            type="number"
+            label="عدد الصفحات"
+            value={pageInput}
+            onChange={(e) => setPageInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleConfirmPageCount();
+              }
+            }}
+            inputProps={{
+              min: 1,
+            }}
+            helperText="يسمح بـ 1 أو أي عدد صحيح زوجي"
+            sx={{
+              mt: 1,
+            }}
+          />
+        </DialogContent>
 
-        <div className="print-table-box">
-          <Tables />
-        </div>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            gap: 1,
+            pb: 2,
+          }}
+        >
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={() => setPageDialogOpen(false)}
+            sx={{
+              borderRadius: "10px",
+              fontWeight: "bold",
+              px: 3,
+            }}
+          >
+            إلغاء
+          </Button>
 
-        <div className="print-table-box">
-          <Tables />
-        </div>
-
-        <div className="print-table-box">
-          <Tables />
-        </div>
-
-        <div className="print-copyright">
-          CopyRight
-          <LocalFireDepartmentIcon fontSize="small" />
-          <span>OMAR EHAB 2026</span>
-        </div>
-      </div>
+          <Button
+            variant="contained"
+            onClick={handleConfirmPageCount}
+            sx={{
+              borderRadius: "10px",
+              fontWeight: "bold",
+              px: 3,
+              background: "linear-gradient(135deg,#16a34a,#15803d)",
+            }}
+          >
+            تأكيد
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

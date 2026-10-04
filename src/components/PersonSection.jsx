@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import {useEffect, useRef, useState} from "react";
 
 const rankOrder = [
   "لواء أح",
@@ -22,7 +22,7 @@ const rankOrder = [
   "جندى",
   "---",
 ];
-function PersonSelect({ names = [], value, onChange, filterRanks = null }) {
+function PersonSelect({names = [], value, onChange, filterRanks = null}) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
   // Filter names by rank

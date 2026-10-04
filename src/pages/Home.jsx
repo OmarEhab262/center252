@@ -1,20 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Button } from "@mui/material";
-import CompareArrows from "@mui/icons-material/CompareArrows";
-import PersonAddAlt from "@mui/icons-material/PersonAddAlt";
-import Visibility from "@mui/icons-material/Visibility";
-import Settings from "@mui/icons-material/Settings";
-import Logout from "@mui/icons-material/Logout";
-import LoginIcon from "@mui/icons-material/Login";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import GuardSection from "../components/GuardSection";
 import PersonSelect from "../components/PersonSelect";
 import PersonSection from "../components/PersonSection";
+import Nav from "../components/Nav";
 import { formatArabicDate, formatArabicDay } from "../utils/date";
-import { getJSON, setJSON, getItem, removeItem } from "../utils/storage";
-import { useNavigate } from "react-router-dom";
+import { getJSON, setJSON, getItem } from "../utils/storage";
+import SoldierServices from "../components/SoldierServices";
+
 // ============================================================
 // Constants
 // ============================================================
@@ -42,7 +35,16 @@ const officerRankOrder = [
 ];
 
 const ncoRankOrder = ["مساعد.أ", "مساعد", "رقيب.أ", "رقيب", "عريف"];
-const soldierRankOrder = ["رقيب مجند", "عريف مجند", "جندى"];
+const bothRankOrder = [
+  "مساعد.أ",
+  "مساعد",
+  "رقيب.أ",
+  "رقيب",
+  "عريف",
+  "رقيب مجند",
+  "عريف مجند",
+  "جندى",
+];
 
 const defaultPerson = { name: "", id: "", rank: "" };
 
@@ -68,9 +70,6 @@ const rankEmojiMap = {
 
 const getRankEmoji = (rank) => rankEmojiMap[rank] || "⭐";
 
-// ملحوظة: تم حذف قسم "السلاح" (weapon) بالكامل من نموذج البيانات
-// بناءً على طلبك. لو فيه أماكن تانية بتشير له (زي components/Tables.jsx
-// اللي مكنش موجود في الكود اللي بعتّه) لازم تتعدل هي كمان يدويًا.
 const defaultData = {
   date: "",
   day: "",
@@ -81,7 +80,6 @@ const defaultData = {
   deputy: { ...defaultPerson },
   rakeb: { ...defaultPerson },
   assistants: { ...defaultPerson },
-  gate: createGuardData(),
   sergeant: { name: "", rank: "" },
   services: {},
 };
@@ -108,6 +106,44 @@ const duplicateColors = [
 // ============================================================
 // Helpers
 // ============================================================
+
+const arabicMonths = {
+  يناير: 0,
+  فبراير: 1,
+  مارس: 2,
+  أبريل: 3,
+  مايو: 4,
+  يونيو: 5,
+  يوليو: 6,
+  أغسطس: 7,
+  سبتمبر: 8,
+  أكتوبر: 9,
+  نوفمبر: 10,
+  ديسمبر: 11,
+};
+
+const parseArabicDate = (dateString) => {
+  if (!dateString) return null;
+
+  const englishDate = String(dateString).replace(/[٠-٩]/g, (digit) =>
+    "٠١٢٣٤٥٦٧٨٩".indexOf(digit),
+  );
+
+  const parts = englishDate.trim().split(/\s+/);
+
+  if (parts.length !== 3) return null;
+
+  const day = Number(parts[0]);
+  const month = arabicMonths[parts[1]];
+  const year = Number(parts[2]);
+
+  if (Number.isNaN(day) || month === undefined || Number.isNaN(year)) {
+    return null;
+  }
+
+  return new Date(year, month, day);
+};
+
 const normalizeServices = (services) => {
   if (!Array.isArray(services)) return [];
   return services.map((service) => {
@@ -128,7 +164,7 @@ export default function Home() {
   // ==========================================================
   // Date
   // ==========================================================
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
 
   // ==========================================================
   // Services
@@ -138,6 +174,8 @@ export default function Home() {
   // ==========================================================
   // Form
   // ==========================================================
+  const datee = JSON.parse(localStorage.getItem("service"));
+  console.log("date", datee?.date);
   const [form, setForm] = useState(() => {
     const today = new Date();
     return {
@@ -168,17 +206,23 @@ export default function Home() {
       await setJSON("serviceTypes", normalizedServices);
 
       const savedForm = await getJSON("service", null);
+
       if (savedForm) {
         setForm((prev) => ({
           ...defaultData,
           ...savedForm,
           date: savedForm.date || prev.date,
           day: savedForm.day || prev.day,
-          services: savedForm.services || {},
-          gate: Array.isArray(savedForm.gate)
-            ? savedForm.gate
-            : createGuardData(),
         }));
+
+        // تحويل التاريخ العربي المحفوظ إلى Date
+        if (savedForm.date) {
+          const parsedDate = parseArabicDate(savedForm.date);
+
+          if (parsedDate) {
+            setSelectedDate(parsedDate);
+          }
+        }
       }
 
       setNames(await getJSON("listNames", []));
@@ -265,7 +309,6 @@ export default function Home() {
       },
     }));
   };
-
   // ==========================================================
   // Change service
   //
@@ -275,50 +318,82 @@ export default function Home() {
   // ثانية -> ثالثة
   // ==========================================================
   const changeKedma = () => {
-    const rotateData = (data) => {
-      if (!Array.isArray(data) || data.length < 4) return data;
-      return [
-        { ...data[0], position: "حكمدار" },
-        { ...data[2], position: "أولى" },
-        { ...data[3], position: "ثانية" },
-        { ...data[1], position: "ثالثة" },
-      ];
-    };
-
     setServiceTypes((prevServices) => {
-      const soldiersServices = prevServices.filter(
-        (service) => service.type === "soldiers",
-      );
-      if (soldiersServices.length === 0) return prevServices;
+      const soldierServiceIndexes = prevServices
+        .map((service, index) => (service.type === "soldiers" ? index : -1))
+        .filter((index) => index !== -1);
 
-      const rotatedServices = [
-        soldiersServices[soldiersServices.length - 1],
-        ...soldiersServices.slice(0, -1),
-      ].map((service) => ({ ...service, data: rotateData(service.data) }));
+      if (soldierServiceIndexes.length < 2) {
+        return prevServices;
+      }
 
-      const newServiceTypes = [...prevServices];
-      let index = 0;
-      newServiceTypes.forEach((service, i) => {
-        if (service.type === "soldiers") {
-          newServiceTypes[i] = rotatedServices[index];
-          index++;
+      const updatedServices = [...prevServices];
+
+      soldierServiceIndexes.forEach((currentIndex, i) => {
+        const nextIndex =
+          soldierServiceIndexes[(i + 1) % soldierServiceIndexes.length];
+
+        const currentService = prevServices[currentIndex];
+        const nextService = prevServices[nextIndex];
+
+        const nextData = Array.isArray(nextService.data)
+          ? nextService.data
+          : createGuardData();
+
+        if (nextData.length < 4) {
+          return;
         }
+
+        updatedServices[currentIndex] = {
+          ...currentService,
+          data: [
+            // حكمدار من الخدمة التالية
+            {
+              ...nextData[0],
+              position: "حكمدار",
+            },
+
+            // ثانية → أولى
+            {
+              ...nextData[2],
+              position: "أولى",
+            },
+
+            // ثالثة → ثانية
+            {
+              ...nextData[3],
+              position: "ثانية",
+            },
+
+            // أولى → ثالثة
+            {
+              ...nextData[1],
+              position: "ثالثة",
+            },
+          ],
+        };
       });
+
+      setJSON("serviceTypes", updatedServices);
 
       setForm((prevForm) => {
-        const newFormServices = { ...(prevForm.services || {}) };
-        soldiersServices.forEach((oldService, oldIndex) => {
-          const newIndex = (oldIndex + 1) % soldiersServices.length;
-          const newService = soldiersServices[newIndex];
-          newFormServices[newService.id] = rotateData(
-            prevForm.services?.[oldService.id],
-          );
+        const newServices = {
+          ...(prevForm.services || {}),
+        };
+
+        updatedServices.forEach((service) => {
+          if (service.type !== "soldiers") return;
+
+          newServices[service.id] = service.data;
         });
-        return { ...prevForm, services: newFormServices };
+
+        return {
+          ...prevForm,
+          services: newServices,
+        };
       });
 
-      setJSON("serviceTypes", newServiceTypes);
-      return newServiceTypes;
+      return updatedServices;
     });
   };
 
@@ -371,20 +446,58 @@ export default function Home() {
     (service) => service.type === "officers",
   );
   const ncoServices = serviceTypes.filter((service) => service.type === "nco");
+  const soldierRankOrder = ["رقيب مجند", "عريف مجند", "جندى"];
+
+  const guardRankOrder = [
+    "مساعد.أ",
+    "مساعد",
+    "رقيب.أ",
+    "رقيب",
+    "عريف",
+    "رقيب مجند",
+    "عريف مجند",
+    "جندى",
+  ];
+
+  const bothNames = names.filter((person) =>
+    bothRankOrder.includes(String(person?.rank || "").trim()),
+  );
+
+  const officerRankOrder = [
+    "لواء أح",
+    "لواء",
+    "عميد أح",
+    "عميد",
+    "عقيد أح",
+    "عقيد",
+    "مقدم أح",
+    "مقدم",
+    "رائد أح",
+    "رائد",
+    "نقيب",
+    "ملازم.أ",
+    "ملازم",
+  ];
 
   const officerNames = names.filter((person) =>
-    officerRankOrder.includes(person.rank),
+    officerRankOrder.includes(String(person.rank).trim()),
   );
+
   const soldierNames = names.filter((person) =>
-    soldierRankOrder.includes(person.rank),
+    soldierRankOrder.includes(String(person.rank).trim()),
   );
 
-  const navigate = useNavigate();
+  const guardNames = names.filter((person) => {
+    const rank = String(person?.rank || "").trim();
 
-  const handleLogout = async () => {
-    await removeItem("auth");
-    navigate("/login", { replace: true });
-  };
+    return guardRankOrder.includes(rank);
+  });
+
+  //   const handleLogout = async () => {
+  //     await removeItem("auth");
+  // <Navigate to="/login" />
+  //   };
+
   const renderPersonServices = (services, title) => {
     if (services.length === 0) return null;
 
@@ -461,20 +574,6 @@ export default function Home() {
     );
   };
 
-  const buttonSx = {
-    borderRadius: "10px",
-    textTransform: "none",
-    fontWeight: "bold",
-    px: 2,
-    py: 1.2,
-    fontSize: "16px",
-    color: "#fff",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    minWidth: "150px",
-  };
-
   if (!loaded) return null;
 
   return (
@@ -502,8 +601,14 @@ export default function Home() {
             <div className=" w-full flex flex-col sm:flex-row gap-4 items-stretch justify-center bg-white/5 border border-white/10 rounded-2xl p-4 shadow-lg">
               <div className="flex-1 flex flex-col justify-center bg-slate-800/60 border border-slate-600/50 rounded-xl p-4 text-center">
                 <span className="text-lg sm:text-xl font-bold">
-                  {formatArabicDay(selectedDate)} -{" "}
-                  {formatArabicDate(selectedDate)}
+                  {selectedDate ? (
+                    <>
+                      {formatArabicDay(selectedDate)} -{" "}
+                      {formatArabicDate(selectedDate)}
+                    </>
+                  ) : (
+                    "لم يتم تحديد التاريخ"
+                  )}
                 </span>
               </div>
 
@@ -512,11 +617,16 @@ export default function Home() {
                   selected={selectedDate}
                   onChange={(date) => {
                     if (!date) return;
+
                     setSelectedDate(date);
+
+                    const newDate = formatArabicDate(date);
+                    const newDay = formatArabicDay(date);
+
                     setForm((prev) => ({
                       ...prev,
-                      date: formatArabicDate(date),
-                      day: formatArabicDay(date),
+                      date: newDate,
+                      day: newDay,
                     }));
                   }}
                   customInput={
@@ -564,7 +674,7 @@ export default function Home() {
           {/* Password */}
           <div className="flex justify-center mt-10">
             <div className="w-full bg-white/5 rounded-2xl p-6 shadow-lg border border-cyan-500/20">
-              <label className="block text-xl font-bold mb-3 text-center text-cyan-300">
+              <label className="block text-2xl font-bold mb-3 text-center text-cyan-300">
                 كلمة سر الليل
               </label>
               <input
@@ -580,152 +690,111 @@ export default function Home() {
           </div>
           {renderPersonServices(officerServices, "خدمات الضباط")}
           {renderPersonServices(ncoServices, "خدمات صف الضباط")}
-          {/* رقيب نوبتجي */}
+          <h2 className="text-2xl font-bold text-center mt-10">خدمات اخرى</h2>
+          <div
+            className="   grid
+          grid-cols-1
+          md:grid-cols-2
+          gap-6
+          w-full"
+          >
+            {/* تنظيم وادارة */}
+            <div className="flex justify-center mt-8">
+              <div className="w-full bg-white/5 rounded-2xl p-6 shadow-lg border border-white/10">
+                <div className="flex items-center justify-end gap-3 mb-4">
+                  <label className="text-2xl font-black text-cyan-300">
+                    تنظيم وادارة{" "}
+                  </label>
+                </div>
+                <PersonSection
+                  // title="تنظيم وادارة"
+                  section="tanzem"
+                  form={form}
+                  names={soldierNames}
+                  updatePerson={updatePerson}
+                />
+              </div>
+            </div>
+            {/* منوب عمليات */}
+            <div className="flex justify-center mt-8">
+              <div className="w-full bg-white/5 rounded-2xl p-6 shadow-lg border border-white/10">
+                <div className="flex items-center justify-end gap-3 mb-4">
+                  <label className="text-2xl font-black text-cyan-300">
+                    منوب عمليات
+                  </label>
+                </div>
+                <PersonSection
+                  // title="منوب عمليات"
+                  section="manob"
+                  form={form}
+                  names={soldierNames}
+                  updatePerson={updatePerson}
+                />
+              </div>
+            </div>
+
+            {/* الكانتين */}
+            <div className="flex justify-center mt-8">
+              <div className="w-full bg-white/5 rounded-2xl p-6 shadow-lg border border-white/10">
+                <div className="flex items-center justify-end gap-3 mb-4">
+                  <label className="text-2xl font-black text-cyan-300">
+                    الكانتين
+                  </label>
+                </div>
+                <PersonSection
+                  // title="الكانتين"
+                  section="kanten"
+                  form={form}
+                  names={soldierNames}
+                  updatePerson={updatePerson}
+                />
+              </div>
+            </div>
+            {/* سائق */}
+            <div className="flex justify-center mt-8">
+              <div className="w-full bg-white/5 rounded-2xl p-6 shadow-lg border border-white/10">
+                <div className="flex items-center justify-end gap-3 mb-4">
+                  <label className="text-2xl font-black text-cyan-300">
+                    سائق{" "}
+                  </label>
+                </div>
+                <PersonSection
+                  // title="سائق"
+                  section="driver"
+                  form={form}
+                  names={bothNames}
+                  updatePerson={updatePerson}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* رقيب نوبتجى */}
           <div className="flex justify-center mt-8">
             <div className="w-full bg-white/5 rounded-2xl p-6 shadow-lg border border-white/10">
               <div className="flex items-center justify-end gap-3 mb-4">
                 <label className="text-2xl font-black text-cyan-300">
-                  رقيب نوبتجى
+                  رقيب نوبتجى{" "}
                 </label>
               </div>
               <PersonSection
-                title="رقيب نوبتجي"
+                title="رقيب نوبتجى"
                 section="rakeb"
                 form={form}
-                names={soldierNames}
+                names={bothNames}
                 updatePerson={updatePerson}
               />
             </div>
           </div>
           {/* Soldiers services */}
-          <div
-            className={`
-    grid
-    grid-cols-1
-    md:grid-cols-2
-    gap-8
-    mt-12
-    w-full
-  `}
-          >
-            {dynamicServices.map((service, index) => {
-              const serviceData = Array.isArray(service.data)
-                ? service.data
-                : createGuardData();
-
-              const isLastOddItem =
-                dynamicServices.length % 2 === 1 &&
-                index === dynamicServices.length - 1;
-
-              return (
-                <div
-                  key={service.id}
-                  className={`w-full ${isLastOddItem ? "md:col-span-2" : ""}`}
-                >
-                  <GuardSection
-                    title={service.name}
-                    data={serviceData}
-                    names={soldierNames}
-                    usageCount={usageCount}
-                    duplicateColorMap={duplicateColorMap}
-                    onChange={(data) => updateDynamicService(service.id, data)}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          {/* Buttons */}
-          <div className="flex justify-center mt-10">
-            <div className="flex flex-wrap justify-center items-center gap-3 bg-slate-900/95 backdrop-blur border border-slate-700 shadow-xl rounded-2xl px-6 py-4">
-              <Button
-                variant="contained"
-                onClick={changeKedma}
-                sx={{
-                  ...buttonSx,
-                  bgcolor: "#475569",
-                  "&:hover": { bgcolor: "#566579" },
-                }}
-              >
-                <span>تبديل الخدمة</span>
-                <CompareArrows sx={{ color: "#fff", fontSize: 25 }} />
-              </Button>
-
-              <Button
-                variant="contained"
-                component={Link}
-                to="/show"
-                sx={{
-                  ...buttonSx,
-                  bgcolor: "#1e3a5f",
-                  "&:hover": { bgcolor: "#264b73" },
-                }}
-              >
-                <span>الخدمة</span>
-                <Visibility sx={{ color: "#fff", fontSize: 25 }} />
-              </Button>
-
-              {isAdmin && (
-                <>
-                  <Button
-                    variant="contained"
-                    component={Link}
-                    to="/add"
-                    sx={{
-                      ...buttonSx,
-                      bgcolor: "#285943",
-                      "&:hover": { bgcolor: "#326b50" },
-                    }}
-                  >
-                    <span>إضافة أسماء</span>
-                    <PersonAddAlt sx={{ color: "#fff", fontSize: 25 }} />
-                  </Button>
-
-                  <Button
-                    variant="contained"
-                    component={Link}
-                    to="/control"
-                    sx={{
-                      ...buttonSx,
-                      bgcolor: "#334155",
-                      "&:hover": { bgcolor: "#475569" },
-                    }}
-                  >
-                    <span>التحكم</span>
-                    <Settings sx={{ color: "#fff", fontSize: 25 }} />
-                  </Button>
-                </>
-              )}
-
-              {isAdmin ? (
-                <Button
-                  variant="contained"
-                  onClick={handleLogout}
-                  sx={{
-                    ...buttonSx,
-                    bgcolor: "#7f1d1d",
-                    "&:hover": { bgcolor: "#991b1b" },
-                  }}
-                >
-                  <span>تسجيل الخروج</span>
-                  <Logout sx={{ color: "#fff", fontSize: 25 }} />
-                </Button>
-              ) : (
-                <Button
-                  variant="contained"
-                  component={Link}
-                  to="/login"
-                  sx={{
-                    ...buttonSx,
-                    bgcolor: "#166534",
-                    "&:hover": { bgcolor: "#15803d" },
-                  }}
-                >
-                  <span>تسجيل الدخول</span>
-                  <LoginIcon sx={{ color: "#fff", fontSize: 25 }} />
-                </Button>
-              )}
-            </div>
-          </div>
+          <SoldierServices
+            services={dynamicServices}
+            soldierNames={soldierNames}
+            guardNames={guardNames}
+            usageCount={usageCount}
+            updateDynamicService={updateDynamicService}
+            changeKedma={changeKedma}
+          />
         </div>
       </div>
     </div>

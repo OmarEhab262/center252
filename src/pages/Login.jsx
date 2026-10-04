@@ -84,7 +84,8 @@ export default function Login() {
   };
 
   const handleGuestLogin = async () => {
-    await setItem("auth");
+    await removeItem("auth");
+
     toast.success("تم الدخول كزائر");
     navigate("/", { replace: true });
   };

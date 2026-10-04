@@ -1,6 +1,4 @@
 import { getUnitName } from "../utils/unitName";
-import { ArabicKashidaText } from "./ArabicKashidaText";
-import { useRef } from "react";
 
 import {
   Table,
@@ -15,28 +13,77 @@ import {
 export default function Tables() {
   const unitName = getUnitName();
 
-  const getResult = JSON.parse(localStorage.getItem("service")) || {};
-  const commandName = localStorage.getItem("commandName");
+  const getResult = JSON.parse(localStorage.getItem("service") || "{}");
+
+  const commandName = localStorage.getItem("commandName") || "";
 
   const serviceTypes = JSON.parse(localStorage.getItem("serviceTypes") || "[]");
 
-  console.log("SERVICE:", getResult);
-  console.log("SERVICE TYPES:", serviceTypes);
+  // =========================
+  // ترتيب الرتب من الأصغر إلى الأكبر
+  // =========================
 
-  const firstTextRef = useRef(null);
+  const rankOrder = [
+    "---",
+    "جندى",
+    "عريف مجند",
+    "رقيب مجند",
+    "عريف",
+    "رقيب",
+    "رقيب.أ",
+    "مساعد",
+    "مساعد.أ",
+    "ملازم",
+    "ملازم.أ",
+    "نقيب",
+    "رائد",
+    "رائد أح",
+    "مقدم",
+    "مقدم أح",
+    "عميد",
+    "عميد أح",
+    "لواء",
+    "لواء أح",
+  ];
 
+  // =========================
   // الخدمات الإضافية من نوع جنود
+  // =========================
+
   const dynamicServices = serviceTypes.filter(
     (service) => service.type === "soldiers",
   );
 
-  const officerServices = serviceTypes.filter(
-    (service) => service.type === "officers",
+  // =========================
+  // خدمات الضباط وصف الضباط
+  // =========================
+
+  const services = serviceTypes.filter(
+    (service) => service.type !== "soldiers",
   );
 
-  const ncoServices = serviceTypes.filter((service) => service.type === "nco");
+  // =========================
+  // ترتيب خدمات التوقيعات حسب رتبة الشخص
+  // من الأصغر إلى الأكبر
+  // =========================
 
+  const sortedServices = [...services].sort((a, b) => {
+    const personA = getResult?.services?.[a.id] || {};
+    const personB = getResult?.services?.[b.id] || {};
+
+    const rankA = rankOrder.indexOf(personA.rank);
+    const rankB = rankOrder.indexOf(personB.rank);
+
+    const orderA = rankA === -1 ? 999 : rankA;
+    const orderB = rankB === -1 ? 999 : rankB;
+
+    return orderA - orderB;
+  });
+
+  // =========================
   // رسم اسم ودرجة الشخص
+  // =========================
+
   const renderPerson = (person) => (
     <>
       <TableCell
@@ -44,15 +91,17 @@ export default function Tables() {
         sx={{
           border: "1px solid #000",
           padding: "2px 4px",
-          fontSize: "7px",
+          fontSize: "15px",
           lineHeight: 1.1,
           fontWeight: 600,
           whiteSpace: "nowrap",
           width: "10%",
           fontFamily: "Cairo, sans-serif",
+          color: "#000",
+          backgroundColor: "#fff",
         }}
       >
-        {person?.name || "---"}
+        {person?.name?.split(" ", 2).join(" ") || "---"}
       </TableCell>
 
       <TableCell
@@ -60,12 +109,14 @@ export default function Tables() {
         sx={{
           border: "1px solid #000",
           padding: "2px 4px",
-          fontSize: "7px",
+          fontSize: "15px",
           lineHeight: 1.1,
           fontWeight: 600,
           whiteSpace: "nowrap",
           width: "8%",
           fontFamily: "Cairo, sans-serif",
+          color: "#000",
+          backgroundColor: "#fff",
         }}
       >
         {person?.rank || "---"}
@@ -73,71 +124,62 @@ export default function Tables() {
     </>
   );
 
-  // شكل الخلية الرئيسية للرأس
+  // =========================
+  // Header Cell
+  // =========================
+
   const headerCellSx = {
     border: "1px solid #000",
     padding: "3px 4px",
     textAlign: "center",
-    fontSize: "7px",
+    fontSize: "15px",
     lineHeight: 1.1,
     fontWeight: 900,
     whiteSpace: "nowrap",
     fontFamily: "Cairo, sans-serif",
     backgroundColor: "#f3f4f6",
+    color: "#000",
   };
 
-  // شكل خلايا الاسم والدرجة
+  // =========================
+  // Sub Header Cell
+  // =========================
+
   const subHeaderCellSx = {
     border: "1px solid #000",
     padding: "2px 4px",
     textAlign: "center",
-    fontSize: "7px",
+    fontSize: "15px",
     lineHeight: 1.1,
     fontWeight: 900,
     whiteSpace: "nowrap",
     fontFamily: "Cairo, sans-serif",
     backgroundColor: "#fafafa",
+    color: "#000",
   };
 
   return (
     <>
-      <div className="w-full border-2 border-black p-1 text-[8px] leading-tight bg-white">
+      <div className="w-full border-black border-2 p-1 text-[15px] leading-tight bg-white text-black">
         {/* ================= Header ================= */}
 
-        <div className="flex justify-between items-center underline mb-2">
+        <div className="flex justify-between underline underline-offset-4 mb-2">
           <div>
-            <p className="-offset-8  font-black">
+            <p className="font-black">
               <span>{getResult?.password}</span> : كلمة سر الليل
             </p>
           </div>
 
           <div className="flex flex-col items-end">
-            <p className="mb-2 font-black">
-              <ArabicKashidaText
-                amount={1}
-                matchWidth={true}
-                targetRef={firstTextRef}
-              >
-                {commandName}
-              </ArabicKashidaText>
-            </p>
-
-            <p className="mb-2 font-black">
-              <ArabicKashidaText
-                amount={1}
-                matchWidth={true}
-                targetRef={firstTextRef}
-              >
-                {unitName}
-              </ArabicKashidaText>
-            </p>
+            <p className="mb-2 font-black">{commandName}</p>
+            <p className="mb-2 font-black">{unitName}</p>
           </div>
         </div>
 
         {/* ================= Title ================= */}
 
-        <div className="flex justify-center items-center m-1">
-          <p className="text-[12px] font-black text-center">
+        <div className="flex justify-center items-center my-4">
+          <p className="text-[20px] font-black text-center underline underline-offset-8">
             الخدمات الليلية {unitName} عن يوم {getResult?.day} الموافق :{" "}
             {getResult?.date}
           </p>
@@ -159,22 +201,19 @@ export default function Tables() {
             }}
           >
             <Table
-              size="small"
               sx={{
-                width: "100%",
-                tableLayout: "fixed",
-                borderCollapse: "collapse",
+                backgroundColor: "#fff",
+                color: "#000",
 
                 "& .MuiTableCell-root": {
-                  verticalAlign: "middle",
-                  direction: "rtl",
-                  fontFamily: "Cairo, Arial, sans-serif",
-                  letterSpacing: "normal",
-                  wordSpacing: "normal",
+                  color: "#000",
+                  backgroundColor: "#fff",
+                  border: "1px solid #000",
                 },
               }}
             >
               {/* ================= TABLE HEAD ================= */}
+
               <TableHead>
                 {/* الصف الأول */}
 
@@ -210,23 +249,21 @@ export default function Tables() {
 
                 <TableRow>
                   <TableCell sx={subHeaderCellSx}>الاسم</TableCell>
-
                   <TableCell sx={subHeaderCellSx}>درجة</TableCell>
 
                   <TableCell sx={subHeaderCellSx}>الاسم</TableCell>
-
                   <TableCell sx={subHeaderCellSx}>درجة</TableCell>
 
                   <TableCell sx={subHeaderCellSx}>الاسم</TableCell>
-
                   <TableCell sx={subHeaderCellSx}>درجة</TableCell>
 
                   <TableCell sx={subHeaderCellSx}>الاسم</TableCell>
-
                   <TableCell sx={subHeaderCellSx}>درجة</TableCell>
                 </TableRow>
               </TableHead>
+
               {/* ================= TABLE BODY ================= */}
+
               <TableBody>
                 {/* ================= الخدمات الإضافية ================= */}
 
@@ -236,19 +273,15 @@ export default function Tables() {
                   return (
                     <TableRow key={service.id}>
                       {/* غفرة تالتة */}
-
                       {renderPerson(data?.[3])}
 
                       {/* غفرة ثانية */}
-
                       {renderPerson(data?.[2])}
 
                       {/* غفرة أولى */}
-
                       {renderPerson(data?.[1])}
 
                       {/* حكمدار */}
-
                       {renderPerson(data?.[0])}
 
                       {/* اسم الخدمة */}
@@ -261,12 +294,13 @@ export default function Tables() {
                           border: "1px solid #000",
                           padding: "3px 4px",
                           textAlign: "center",
-                          fontSize: "7px",
+                          fontSize: "15px",
                           lineHeight: 1.1,
                           fontWeight: 900,
                           whiteSpace: "nowrap",
                           fontFamily: "Cairo, sans-serif",
                           backgroundColor: "#f8fafc",
+                          color: "#000",
                         }}
                       >
                         {service.name}
@@ -274,6 +308,222 @@ export default function Tables() {
                     </TableRow>
                   );
                 })}
+
+                {/* ================= تنظيم وادارة ================= */}
+
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    align="center"
+                    sx={{
+                      border: "1px solid #000",
+                      padding: "3px 4px",
+                      fontSize: "15px",
+                      lineHeight: 1.1,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                      fontFamily: "Cairo, sans-serif",
+                      color: "#000",
+                    }}
+                  >
+                    {getResult?.tanzem?.name || "---"}
+                  </TableCell>
+
+                  <TableCell
+                    align="center"
+                    sx={{
+                      border: "1px solid #000",
+                      padding: "3px 4px",
+                      fontSize: "15px",
+                      lineHeight: 1.1,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                      fontFamily: "Cairo, sans-serif",
+                      color: "#000",
+                    }}
+                  >
+                    {getResult?.tanzem?.rank || "---"}
+                  </TableCell>
+
+                  <TableCell
+                    align="center"
+                    sx={{
+                      border: "1px solid #000",
+                      padding: "3px 4px",
+                      fontSize: "15px",
+                      lineHeight: 1.1,
+                      fontWeight: 900,
+                      whiteSpace: "nowrap",
+                      fontFamily: "Cairo, sans-serif",
+                      backgroundColor: "#f3f4f6",
+                      color: "#000",
+                    }}
+                  >
+                    تنظيم وادارة
+                  </TableCell>
+                </TableRow>
+
+                {/* ================= منوب عمليات ================= */}
+
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    align="center"
+                    sx={{
+                      border: "1px solid #000",
+                      padding: "3px 4px",
+                      fontSize: "15px",
+                      lineHeight: 1.1,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                      fontFamily: "Cairo, sans-serif",
+                      color: "#000",
+                    }}
+                  >
+                    {getResult?.manob?.name || "---"}
+                  </TableCell>
+
+                  <TableCell
+                    align="center"
+                    sx={{
+                      border: "1px solid #000",
+                      padding: "3px 4px",
+                      fontSize: "15px",
+                      lineHeight: 1.1,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                      fontFamily: "Cairo, sans-serif",
+                      color: "#000",
+                    }}
+                  >
+                    {getResult?.manob?.rank || "---"}
+                  </TableCell>
+
+                  <TableCell
+                    align="center"
+                    sx={{
+                      border: "1px solid #000",
+                      padding: "3px 4px",
+                      fontSize: "15px",
+                      lineHeight: 1.1,
+                      fontWeight: 900,
+                      whiteSpace: "nowrap",
+                      fontFamily: "Cairo, sans-serif",
+                      backgroundColor: "#f3f4f6",
+                      color: "#000",
+                    }}
+                  >
+                    منوب عمليات
+                  </TableCell>
+                </TableRow>
+
+                {/* ================= الكانتين ================= */}
+
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    align="center"
+                    sx={{
+                      border: "1px solid #000",
+                      padding: "3px 4px",
+                      fontSize: "15px",
+                      lineHeight: 1.1,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                      fontFamily: "Cairo, sans-serif",
+                      color: "#000",
+                    }}
+                  >
+                    {getResult?.kanten?.name || "---"}
+                  </TableCell>
+
+                  <TableCell
+                    align="center"
+                    sx={{
+                      border: "1px solid #000",
+                      padding: "3px 4px",
+                      fontSize: "15px",
+                      lineHeight: 1.1,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                      fontFamily: "Cairo, sans-serif",
+                      color: "#000",
+                    }}
+                  >
+                    {getResult?.kanten?.rank || "---"}
+                  </TableCell>
+
+                  <TableCell
+                    align="center"
+                    sx={{
+                      border: "1px solid #000",
+                      padding: "3px 4px",
+                      fontSize: "15px",
+                      lineHeight: 1.1,
+                      fontWeight: 900,
+                      whiteSpace: "nowrap",
+                      fontFamily: "Cairo, sans-serif",
+                      backgroundColor: "#f3f4f6",
+                      color: "#000",
+                    }}
+                  >
+                    الكانتين
+                  </TableCell>
+                </TableRow>
+
+                {/* ================= سائق ================= */}
+
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    align="center"
+                    sx={{
+                      border: "1px solid #000",
+                      padding: "3px 4px",
+                      fontSize: "15px",
+                      lineHeight: 1.1,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                      fontFamily: "Cairo, sans-serif",
+                      color: "#000",
+                    }}
+                  >
+                    {getResult?.driver?.name || "---"}
+                  </TableCell>
+
+                  <TableCell
+                    align="center"
+                    sx={{
+                      border: "1px solid #000",
+                      padding: "3px 4px",
+                      fontSize: "15px",
+                      lineHeight: 1.1,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                      fontFamily: "Cairo, sans-serif",
+                      color: "#000",
+                    }}
+                  >
+                    {getResult?.driver?.rank || "---"}
+                  </TableCell>
+
+                  <TableCell
+                    align="center"
+                    sx={{
+                      border: "1px solid #000",
+                      padding: "3px 4px",
+                      fontSize: "15px",
+                      lineHeight: 1.1,
+                      fontWeight: 900,
+                      whiteSpace: "nowrap",
+                      fontFamily: "Cairo, sans-serif",
+                      backgroundColor: "#f3f4f6",
+                      color: "#000",
+                    }}
+                  >
+                    سائق
+                  </TableCell>
+                </TableRow>
 
                 {/* ================= رقيب نوبتجي ================= */}
 
@@ -284,12 +534,12 @@ export default function Tables() {
                     sx={{
                       border: "1px solid #000",
                       padding: "3px 4px",
-                      textAlign: "center",
-                      fontSize: "7px",
+                      fontSize: "15px",
                       lineHeight: 1.1,
                       fontWeight: 700,
                       whiteSpace: "nowrap",
                       fontFamily: "Cairo, sans-serif",
+                      color: "#000",
                     }}
                   >
                     {getResult?.rakeb?.name || "---"}
@@ -300,12 +550,12 @@ export default function Tables() {
                     sx={{
                       border: "1px solid #000",
                       padding: "3px 4px",
-                      textAlign: "center",
-                      fontSize: "7px",
+                      fontSize: "15px",
                       lineHeight: 1.1,
                       fontWeight: 700,
                       whiteSpace: "nowrap",
                       fontFamily: "Cairo, sans-serif",
+                      color: "#000",
                     }}
                   >
                     {getResult?.rakeb?.rank || "---"}
@@ -316,13 +566,13 @@ export default function Tables() {
                     sx={{
                       border: "1px solid #000",
                       padding: "3px 4px",
-                      textAlign: "center",
-                      fontSize: "7px",
+                      fontSize: "15px",
                       lineHeight: 1.1,
                       fontWeight: 900,
                       whiteSpace: "nowrap",
                       fontFamily: "Cairo, sans-serif",
                       backgroundColor: "#f3f4f6",
+                      color: "#000",
                     }}
                   >
                     رقيب نوبتجي
@@ -335,74 +585,47 @@ export default function Tables() {
 
         {/* ================= التوقيعات ================= */}
 
-        <div className="flex justify-between flex-wrap">
-          {/* خدمات الضباط */}
-
-          {officerServices.map((service) => {
+        <div
+          dir="rtl"
+          className="flex flex-row justify-between flex-wrap gap-3 my-5"
+        >
+          {/* ================= خدمات ضباط و صف الضباط ================= */}
+          {sortedServices.map((service) => {
             const person = getResult?.services?.[service.id] || {};
 
             return (
               <div
                 key={service.id}
-                className="flex items-end flex-col w-[38%] border border-black p-1 m-1 rounded-[5px]"
+                className="flex text-black items-start flex-col gap-1 w-[40%] border-black border-2 p-1 m-1 rounded-[5px]"
               >
-                <div className="flex justify-between items-center w-full">
-                  <div>(</div>
-                  <div>) توقيع</div>
-                </div>
-
-                <p className="text-[7px]">
+                <p className="text-[15px]">
                   {person.rank || "---"} / {person.name || "---"}
                 </p>
 
-                <p className="text-[7px]">
+                <p className="text-[15px]">
                   {service.name} {unitName}
                 </p>
-              </div>
-            );
-          })}
 
-          {/* خدمات صف الضباط */}
-
-          {ncoServices.map((service) => {
-            const person = getResult?.services?.[service.id] || {};
-
-            return (
-              <div
-                key={service.id}
-                className="flex items-end flex-col w-[38%] border border-black p-1 m-1 rounded-[5px]"
-              >
                 <div className="flex justify-between items-center w-full">
-                  <div>(</div>
-                  <div>) توقيع</div>
+                  <div> توقيع ( </div>
+                  <div>)</div>
                 </div>
-
-                <p className="text-[7px]">
-                  {person.rank || "---"} / {person.name || "---"}
-                </p>
-
-                <p className="text-[7px]">
-                  {service.name} {unitName}
-                </p>
               </div>
             );
           })}
-        </div>
-
-        {/* ================= قائد الوحدة ================= */}
-
-        <div className="flex justify-between">
-          <div className="flex items-end flex-col w-[38%] border border-black p-1 m-1 rounded-[5px]">
-            <div className="flex justify-between items-center w-full">
-              <div>(</div>
-              <div>) توقيع</div>
-            </div>
-
-            <p className="text-[7px]">
-              {getResult?.leader?.rank} / {getResult?.leader?.name}
+          {/* ================= قائد الوحدة ================= */}
+          <div className="flex text-black flex-col w-[40%] gap-1 border-black border-2 p-1 m-1 rounded-[5px] order-last mr-auto">
+            <p className="text-[15px]">
+              {getResult?.leader?.rank || "---"} /{" "}
+              {getResult?.leader?.name || "---"}
             </p>
 
-            <p className="text-[7px]">قائد {unitName}</p>
+            <p className="text-[15px]">قائد {unitName}</p>
+
+            <div className="flex justify-between items-center w-full">
+              <div> توقيع ( </div>
+              <div>)</div>
+            </div>
           </div>
         </div>
       </div>
