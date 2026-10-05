@@ -28,6 +28,8 @@ import PageOutCountry from "./TmamPages/PageOutCountry";
 import PageAbsence from "./TmamPages/PageAbsence";
 import PagePrison from "./TmamPages/PagePrison";
 import PagePeople from "./pages/PagePeople";
+import PageNCOs from "./TmamPages/PageNCOs";
+import PageSoldiers from "./TmamPages/PageSoldiers";
 
 function AppContent() {
   const location = useLocation();
@@ -71,6 +73,10 @@ function AppContent() {
           <Route path="/tmam" element={<Tmam />} />
 
           <Route path="/tmam/pageOffs" element={<PageOffs />} />
+
+          <Route path="/tmam/page-nco" element={<PageNCOs />} />
+
+          <Route path="/tmam/page-soldiers" element={<PageSoldiers />} />
 
           <Route path="/tmam/pageOtherRanks" element={<PageOtherRanks />} />
 

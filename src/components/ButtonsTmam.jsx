@@ -59,10 +59,20 @@ const menuItems = [
     icon: Person,
   },
   {
-    label: "تمام الدرجات الأخرى",
-    path: "/tmam/pageOtherRanks",
+    label: "تمام صف الضباط",
+    path: "/tmam/page-nco",
     icon: Groups,
   },
+  {
+    label: "تمام الحنود",
+    path: "/tmam/page-soldiers",
+    icon: Groups,
+  },
+  // {
+  //   label: "تمام الدرجات الأخرى",
+  //   path: "/tmam/pageOtherRanks",
+  //   icon: Groups,
+  // },
   {
     label: "الإجازات",
     path: "/tmam/pageVacations",
@@ -177,7 +187,7 @@ const ButtonsTmam = () => {
           }}
         />
 
-        <span>مراجعة التمام</span>
+        <span>مشاهدة التمام</span>
       </Button>
       {/* Main Button */}
       <Button

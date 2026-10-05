@@ -15,7 +15,7 @@
   "author": "Omar Ehab",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 5173",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

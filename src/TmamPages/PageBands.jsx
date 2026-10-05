@@ -226,11 +226,7 @@ const PageBands = () => {
                 fontWeight: "bold",
                 textTransform: "none",
                 flexShrink: 0,
-
-                "& .MuiButton-startIcon": {
-                  marginLeft: { xs: 0.5, sm: 1 },
-                  marginRight: 0,
-                },
+                transition: "all 0.2s ease",
 
                 "&:hover": {
                   bgcolor: "rgba(51,65,85,0.6)",
@@ -240,7 +236,7 @@ const PageBands = () => {
                 },
               }}
             >
-              <span className="hidden sm:inline">رجوع</span>
+              <span className="hidden sm:inline">رجوع لصفحة التمام</span>
             </Button>
 
             <div className="flex items-center justify-center gap-3 flex-1 min-w-0">

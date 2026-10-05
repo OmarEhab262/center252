@@ -233,7 +233,7 @@ const PageAbsence = () => {
                 },
               }}
             >
-              <span className="hidden sm:inline">رجوع</span>
+              <span className="hidden sm:inline">رجوع لصفحة التمام</span>
             </Button>
 
             <div className="flex items-center justify-center gap-3 flex-1 min-w-0">

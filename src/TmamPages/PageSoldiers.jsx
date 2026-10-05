@@ -6,13 +6,13 @@ import { Button } from "@mui/material";
 
 import { Link } from "react-router-dom";
 
+import toast from "react-hot-toast";
+
 import ButtonsTmam from "../components/ButtonsTmam";
 
 import { getJSON, setJSON } from "../utils/storage";
 
-import toast from "react-hot-toast";
-
-const PageOtherRanks = () => {
+const PageSoldiers = () => {
   const [listNames, setListNames] = useState([]);
 
   const [counts, setCounts] = useState({
@@ -34,7 +34,7 @@ const PageOtherRanks = () => {
       const names = await getJSON("listNames", []);
       const tmam = await getJSON("tmam", {});
 
-      const savedCounts = tmam.tmamOtherRanks || {};
+      const savedCounts = tmam.tmamSoldiers || {};
 
       setListNames(names);
 
@@ -47,19 +47,10 @@ const PageOtherRanks = () => {
     loadData();
   }, []);
 
-  const otherRanks = [
-    "مساعد.أ",
-    "مساعد",
-    "رقيب.أ",
-    "رقيب",
-    "عريف",
-    "رقيب مجند",
-    "عريف مجند",
-    "جندى",
-  ];
+  const soldiers = ["رقيب مجند", "عريف مجند", "جندى"];
 
-  const otherRanksCount = listNames.filter((person) =>
-    otherRanks.includes(person.rank),
+  const soldiersCount = listNames.filter((person) =>
+    soldiers.includes(person.rank),
   ).length;
 
   const outsideTypes = [
@@ -79,10 +70,7 @@ const PageOtherRanks = () => {
     0,
   );
 
-  const presentCount = Math.max(
-    0,
-    otherRanksCount - Number(counts.الخارج || 0),
-  );
+  const presentCount = Math.max(0, soldiersCount - Number(counts.الخارج || 0));
 
   const handleChange = (name, value) => {
     const numberValue = Math.max(0, Number(value) || 0);
@@ -96,8 +84,8 @@ const PageOtherRanks = () => {
   const handleSave = async () => {
     const outside = Number(counts.الخارج || 0);
 
-    if (outside > otherRanksCount) {
-      toast.error("عدد الخارج لا يمكن أن يكون أكبر من العدد الكلي");
+    if (outside > soldiersCount) {
+      toast.error("عدد الخارج لا يمكن أن يكون أكبر من عدد الجنود");
       return;
     }
 
@@ -110,6 +98,7 @@ const PageOtherRanks = () => {
 
     const dataToSave = {
       ...counts,
+      القوة: soldiersCount,
       الموجود: presentCount,
     };
 
@@ -117,12 +106,12 @@ const PageOtherRanks = () => {
 
     await setJSON("tmam", {
       ...tmam,
-      tmamOtherRanks: dataToSave,
+      tmamSoldiers: dataToSave,
     });
 
     setCounts(dataToSave);
 
-    toast.success("تم حفظ التمام بنجاح");
+    toast.success("تم حفظ تمام الجنود بنجاح");
   };
 
   const sectionSx = {
@@ -137,7 +126,7 @@ const PageOtherRanks = () => {
   return (
     <div className="min-h-screen bg-linear-to-br from-cyan-900 via-slate-900 to-black text-white py-6 sm:py-10 px-3 sm:px-5">
       <div className="max-w-7xl mx-auto">
-        {/* ================= Header ================= */}
+        {/* Header */}
         <div className="bg-white/10 rounded-3xl shadow-2xl p-5 sm:p-8 backdrop-blur border border-white/10">
           <div className="flex items-center justify-between gap-4">
             <Button
@@ -180,11 +169,11 @@ const PageOtherRanks = () => {
 
               <div className="text-center min-w-0">
                 <h1 className="text-xl sm:text-3xl lg:text-4xl font-black leading-relaxed bg-gradient-to-l from-cyan-300 to-white bg-clip-text text-transparent">
-                  تمام الدرجات الأخرى
+                  تمام الجنود
                 </h1>
 
                 <p className="text-xs sm:text-base text-cyan-200/80 font-semibold mt-1">
-                  بيانات تمام الصف ضباط والعساكر
+                  بيانات تمام الجنود
                 </p>
               </div>
             </div>
@@ -195,53 +184,29 @@ const PageOtherRanks = () => {
 
         <ButtonsTmam />
 
-        {/* ================= Counts ================= */}
+        {/* Counts */}
         <section dir="rtl" style={sectionSx}>
           <div className="p-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-              {/* العدد */}
-              <div
-                className="
-      relative overflow-hidden rounded-2xl
-      border border-cyan-400/20
-      bg-gradient-to-br from-cyan-500/10 to-blue-500/5
-      p-3
-      transition-all duration-200
-      hover:border-cyan-400/35
-    "
-              >
+              {/* العدد الكلي */}
+              <div className="relative overflow-hidden rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 p-3">
                 <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-400/5 rounded-full blur-xl" />
 
                 <div className="relative flex flex-col items-center gap-2">
-                  <span className="text-xs font-bold text-cyan-200">العدد</span>
+                  <span className="text-xs font-bold text-cyan-200">
+                    العدد الكلي
+                  </span>
 
-                  <div
-                    className="
-          flex items-center justify-center
-          w-16 h-10
-          rounded-xl
-          bg-slate-900/70
-          border border-cyan-400/20
-        "
-                  >
+                  <div className="flex items-center justify-center w-16 h-10 rounded-xl bg-slate-900/70 border border-cyan-400/20">
                     <span className="text-lg font-black text-cyan-300">
-                      {otherRanksCount}
+                      {soldiersCount}
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* الخارج */}
-              <div
-                className="
-      relative overflow-hidden rounded-2xl
-      border border-cyan-400/20
-      bg-gradient-to-br from-cyan-500/10 to-blue-500/5
-      p-3
-      transition-all duration-200
-      hover:border-cyan-400/35
-    "
-              >
+              <div className="relative overflow-hidden rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 p-3">
                 <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-400/5 rounded-full blur-xl" />
 
                 <div className="relative flex flex-col items-center gap-2">
@@ -252,39 +217,31 @@ const PageOtherRanks = () => {
                   <input
                     type="number"
                     min="0"
-                    max={otherRanksCount}
+                    max={soldiersCount}
                     value={counts.الخارج}
                     onChange={(e) => handleChange("الخارج", e.target.value)}
                     className="
-          w-16 h-10
-          rounded-xl
-          bg-slate-950/80
-          border border-cyan-400/20
-          text-cyan-300
-          text-center
-          text-base
-          font-black
-          outline-none
-          transition
-          focus:border-cyan-400
-          focus:ring-2
-          focus:ring-cyan-400/20
-        "
+                      w-16
+                      h-10
+                      rounded-xl
+                      bg-slate-950/80
+                      border border-cyan-400/20
+                      text-cyan-300
+                      text-center
+                      text-base
+                      font-black
+                      outline-none
+                      transition
+                      focus:border-cyan-400
+                      focus:ring-2
+                      focus:ring-cyan-400/20
+                    "
                   />
                 </div>
               </div>
 
               {/* الموجود */}
-              <div
-                className="
-      relative overflow-hidden rounded-2xl
-      border border-cyan-400/20
-      bg-gradient-to-br from-cyan-500/10 to-blue-500/5
-      p-3
-      transition-all duration-200
-      hover:border-cyan-400/35
-    "
-              >
+              <div className="relative overflow-hidden rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 p-3">
                 <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-400/5 rounded-full blur-xl" />
 
                 <div className="relative flex flex-col items-center gap-2">
@@ -292,15 +249,7 @@ const PageOtherRanks = () => {
                     الموجود
                   </span>
 
-                  <div
-                    className="
-          flex items-center justify-center
-          w-16 h-10
-          rounded-xl
-          bg-slate-900/70
-          border border-cyan-400/20
-        "
-                  >
+                  <div className="flex items-center justify-center w-16 h-10 rounded-xl bg-slate-900/70 border border-cyan-400/20">
                     <span className="text-lg font-black text-cyan-300">
                       {presentCount}
                     </span>
@@ -313,13 +262,20 @@ const PageOtherRanks = () => {
                 <div
                   key={item}
                   className="
-        relative overflow-hidden rounded-2xl
-        border border-cyan-400/20
-        bg-gradient-to-br from-cyan-500/10 to-blue-500/5
-        p-3
-        transition-all duration-200
-        hover:border-cyan-400/35
-      "
+                    relative
+                    overflow-hidden
+                    rounded-2xl
+                    border border-cyan-400/20
+                    bg-gradient-to-br
+                    from-cyan-500/10
+                    to-blue-500/5
+                    p-3
+                    transition-all
+                    duration-200
+                    hover:border-cyan-400/35
+                    hover:from-cyan-500/15
+                    hover:to-blue-500/10
+                  "
                 >
                   <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-400/5 rounded-full blur-xl" />
 
@@ -334,25 +290,27 @@ const PageOtherRanks = () => {
                       value={counts[item]}
                       onChange={(e) => handleChange(item, e.target.value)}
                       className="
-            w-16 h-10
-            rounded-xl
-            bg-slate-950/80
-            border border-cyan-400/20
-            text-cyan-300
-            text-center
-            text-base
-            font-black
-            outline-none
-            transition
-            focus:border-cyan-400
-            focus:ring-2
-            focus:ring-cyan-400/20
-          "
+                        w-16
+                        h-10
+                        rounded-xl
+                        bg-slate-950/80
+                        border border-cyan-400/20
+                        text-cyan-300
+                        text-center
+                        text-base
+                        font-black
+                        outline-none
+                        transition
+                        focus:border-cyan-400
+                        focus:ring-2
+                        focus:ring-cyan-400/20
+                      "
                     />
                   </div>
                 </div>
               ))}
             </div>
+
             {/* حفظ */}
             <div className="flex justify-center mt-5">
               <button
@@ -379,4 +337,4 @@ const PageOtherRanks = () => {
   );
 };
 
-export default PageOtherRanks;
+export default PageSoldiers;

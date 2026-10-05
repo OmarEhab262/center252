@@ -3,7 +3,6 @@ import { useState } from "react";
 import {
   ArrowBack,
   CalendarMonth,
-  Visibility,
   Person,
   Groups,
   EventAvailable,
@@ -28,7 +27,6 @@ import {
 
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-
 import ButtonsTmam from "../components/ButtonsTmam";
 
 const Tmam = () => {
@@ -40,7 +38,8 @@ const Tmam = () => {
 
   const {
     tmamOfficers = {},
-    tmamOtherRanks = {},
+    tmamNCOs = {},
+    tmamSoldiers = {},
     vacations = [],
     sickLeaves = [],
     hospitals = [],
@@ -54,75 +53,155 @@ const Tmam = () => {
 
   const listNames = JSON.parse(localStorage.getItem("listNames") || "[]");
 
-  // ==========================================
-  // كل مصادر الأشخاص الخارجين
-  // ==========================================
+  // =========================================================
+  // الرتب
+  // =========================================================
+
+  const officerRanks = [
+    "لواء أح",
+    "لواء",
+    "عميد أح",
+    "عميد",
+    "عقيد أح",
+    "عقيد",
+    "مقدم أح",
+    "مقدم",
+    "رائد أح",
+    "رائد",
+    "نقيب أح",
+    "نقيب",
+    "ملازم أول أح",
+    "ملازم أول",
+    "ملازم.أ",
+    "ملازم",
+  ];
+
+  const ncoRanks = [
+    "مساعد أول",
+    "مساعد.أ",
+    "مساعد",
+    "رقيب أول",
+    "رقيب.أ",
+    "رقيب",
+    "عريف",
+  ];
+
+  const soldierRanks = ["رقيب مجند", "عريف مجند", "جندى"];
+
+  const getPersonCategory = (person) => {
+    const rank = String(person?.rank || "").trim();
+
+    if (officerRanks.includes(rank)) {
+      return "officers";
+    }
+
+    if (ncoRanks.includes(rank)) {
+      return "ncos";
+    }
+
+    if (soldierRanks.includes(rank)) {
+      return "soldiers";
+    }
+
+    return "unknown";
+  };
+
+  // =========================================================
+  // مصادر كل الأشخاص الخارجين
+  // =========================================================
 
   const outsideSources = [
     {
       type: "vacation",
+      label: "إجازة",
       data: vacations,
     },
     {
       type: "sickLeave",
+      label: "إجازة مرضية",
       data: sickLeaves,
     },
     {
       type: "hospital",
+      label: "المستشفى",
       data: hospitals,
     },
     {
       type: "mission",
+      label: "مأمورية",
       data: missions,
     },
     {
       type: "band",
+      label: "الفرقة",
       data: bands,
     },
     {
       type: "outCenter",
+      label: "خارج التمركز",
       data: outCenters,
     },
     {
       type: "outCountry",
+      label: "خارج البلاد",
       data: outCountries,
     },
     {
       type: "absence",
+      label: "غياب",
       data: absences,
     },
     {
       type: "prison",
+      label: "سجن",
       data: prisons,
     },
   ];
 
-  // ==========================================
-  // إنشاء الأشخاص الخارجين بدون تكرار
-  // ==========================================
+  // =========================================================
+  // إنشاء Map للأشخاص الخارجين
+  //
+  // مهم:
+  // ID هو المرجع الأساسي وليس الاسم
+  // =========================================================
 
   const outsidePeopleMap = new Map();
 
-  outsideSources.forEach(({ type, data }) => {
-    data.forEach((item) => {
-      if (!item?.personId) return;
+  outsideSources.forEach(({ type, label, data }) => {
+    if (!Array.isArray(data)) return;
 
-      if (!outsidePeopleMap.has(item.personId)) {
+    data.forEach((item) => {
+      if (
+        item?.personId === undefined ||
+        item?.personId === null ||
+        item?.personId === ""
+      ) {
+        return;
+      }
+
+      const personId = Number(item.personId);
+
+      if (Number.isNaN(personId)) {
+        return;
+      }
+
+      if (!outsidePeopleMap.has(personId)) {
         const originalPerson = listNames.find(
-          (person) => person.id === item.personId,
+          (person) => Number(person.id) === personId,
         );
 
-        outsidePeopleMap.set(item.personId, {
+        outsidePeopleMap.set(personId, {
           ...(originalPerson || {}),
-          id: item.personId,
+          id: personId,
           name: item.name || originalPerson?.name || "",
           rank: item.rank || originalPerson?.rank || "",
           statuses: [],
         });
       }
 
-      outsidePeopleMap.get(item.personId).statuses.push({
+      outsidePeopleMap.get(personId).statuses.push({
         type,
+        label,
         ...item,
       });
     });
@@ -130,46 +209,248 @@ const Tmam = () => {
 
   const outsidePeople = Array.from(outsidePeopleMap.values());
 
-  // ==========================================
+  // =========================================================
   // IDs الأشخاص الخارجين
-  // ==========================================
+  // =========================================================
 
-  const outsideIds = new Set(outsidePeople.map((person) => person.id));
+  const outsideIds = new Set(outsidePeople.map((person) => Number(person.id)));
 
-  // ==========================================
-  // الأشخاص الموجودين
-  // ==========================================
+  // =========================================================
+  // الأشخاص الموجودون فعليًا
+  //
+  // أي شخص ليس له ID في الخارج = موجود
+  // =========================================================
 
   const insidePeople = listNames
-    .filter((person) => !outsideIds.has(person.id))
+    .filter((person) => !outsideIds.has(Number(person.id)))
     .map((person) => ({
       ...person,
       statuses: [],
     }));
 
-  // ==========================================
-  // العدد المكتوب في التمام
-  // ==========================================
+  // =========================================================
+  // القوة الكلية الفعلية
+  // =========================================================
 
-  const registeredOutsideCount =
-    (Number(tmamOfficers["الخارج"]) || 0) +
-    (Number(tmamOtherRanks["الخارج"]) || 0);
+  const actualTotalCount = listNames.length;
 
-  // ==========================================
-  // العدد الحقيقي من بيانات الأشخاص
-  // ==========================================
+  // =========================================================
+  // الخارج الفعلي
+  // =========================================================
 
   const actualOutsideCount = outsidePeople.length;
 
-  // ==========================================
-  // الفرق
-  // ==========================================
+  // =========================================================
+  // الموجود الفعلي
+  // =========================================================
 
-  const outsideDifference = actualOutsideCount - registeredOutsideCount;
+  const actualInsideCount = insidePeople.length;
 
-  // ==========================================
-  // حفظ people
-  // ==========================================
+  // =========================================================
+  // الأشخاص الذين لديهم أكثر من حالة
+  // =========================================================
+
+  const peopleWithMultipleStatuses = outsidePeople.filter(
+    (person) => person.statuses.length > 1,
+  );
+
+  const duplicateStatusErrors = peopleWithMultipleStatuses.map((person) => ({
+    name: person.name,
+    rank: person.rank,
+    statuses: person.statuses.map((status) => status.label),
+  }));
+
+  // =========================================================
+  // القوة المكتوبة حسب الفئة
+  // =========================================================
+
+  const getRegisteredCategory = (data) => {
+    const force = Number(data?.["القوة"]) || 0;
+    const outside = Number(data?.["الخارج"]) || 0;
+
+    return {
+      total: force,
+      inside: Math.max(force - outside, 0),
+      outside,
+    };
+  };
+
+  const registeredCategoryCounts = {
+    officers: getRegisteredCategory(tmamOfficers),
+    ncos: getRegisteredCategory(tmamNCOs),
+    soldiers: getRegisteredCategory(tmamSoldiers),
+  };
+
+  // =========================================================
+  // القوة الكلية المكتوبة
+  // =========================================================
+
+  const registeredInsideCount =
+    registeredCategoryCounts.officers.inside +
+    registeredCategoryCounts.ncos.inside +
+    registeredCategoryCounts.soldiers.inside;
+
+  const registeredOutsideCount =
+    registeredCategoryCounts.officers.outside +
+    registeredCategoryCounts.ncos.outside +
+    registeredCategoryCounts.soldiers.outside;
+
+  const registeredTotalCount = registeredInsideCount + registeredOutsideCount;
+
+  // =========================================================
+  // القوة الفعلية حسب الفئة
+  // =========================================================
+
+  const actualCategoryCounts = {
+    officers: {
+      total: 0,
+      inside: 0,
+      outside: 0,
+    },
+
+    ncos: {
+      total: 0,
+      inside: 0,
+      outside: 0,
+    },
+
+    soldiers: {
+      total: 0,
+      inside: 0,
+      outside: 0,
+    },
+  };
+
+  listNames.forEach((person) => {
+    const category = getPersonCategory(person);
+
+    if (!actualCategoryCounts[category]) {
+      return;
+    }
+
+    actualCategoryCounts[category].total++;
+
+    if (outsideIds.has(Number(person.id))) {
+      actualCategoryCounts[category].outside++;
+    } else {
+      actualCategoryCounts[category].inside++;
+    }
+  });
+
+  // =========================================================
+  // أسماء الفئات
+  // =========================================================
+
+  const categoryLabels = {
+    officers: "الضباط",
+    ncos: "الصف ضباط",
+    soldiers: "الجنود",
+  };
+
+  // =========================================================
+  // فروقات الفئات
+  // =========================================================
+
+  const categoryDifferences = [];
+
+  Object.keys(actualCategoryCounts).forEach((category) => {
+    const actual = actualCategoryCounts[category];
+
+    const registered = registeredCategoryCounts[category];
+
+    if (
+      actual.total !== registered.total ||
+      actual.inside !== registered.inside ||
+      actual.outside !== registered.outside
+    ) {
+      categoryDifferences.push({
+        category,
+        label: categoryLabels[category],
+        actual,
+        registered,
+      });
+    }
+  });
+
+  // =========================================================
+  // الحالات الفعلية
+  //
+  // مهم:
+  // هنا بنستخدم عدد السجلات في كل حالة.
+  // =========================================================
+
+  const actualCounts = {
+    إجازة: vacations.length,
+    "إجازة مرضية": sickLeaves.length,
+    المستشفى: hospitals.length,
+    مأمورية: missions.length,
+    الفرقة: bands.length,
+    "خارج التمركز": outCenters.length,
+    "خارج البلاد": outCountries.length,
+    غياب: absences.length,
+    سجن: prisons.length,
+  };
+
+  // =========================================================
+  // عدد الحالة المكتوب
+  // =========================================================
+
+  const getRegisteredCount = (key) => {
+    return (
+      (Number(tmamOfficers[key]) || 0) +
+      (Number(tmamNCOs[key]) || 0) +
+      (Number(tmamSoldiers[key]) || 0)
+    );
+  };
+
+  const registeredCounts = {
+    إجازة: getRegisteredCount("إجازة"),
+
+    "إجازة مرضية": getRegisteredCount("إجازة مرضية"),
+
+    المستشفى: getRegisteredCount("المستشفى"),
+
+    مأمورية: getRegisteredCount("مأمورية"),
+
+    الفرقة: getRegisteredCount("الفرقة"),
+
+    "خارج التمركز": getRegisteredCount("خارج التمركز"),
+
+    "خارج البلاد": getRegisteredCount("خارج البلاد"),
+
+    غياب: getRegisteredCount("غياب"),
+
+    سجن: getRegisteredCount("سجن"),
+  };
+
+  // =========================================================
+  // فروقات الحالات
+  // =========================================================
+
+  const countDifferences = Object.keys(actualCounts)
+    .filter((type) => actualCounts[type] !== registeredCounts[type])
+    .map((type) => ({
+      type,
+      actual: actualCounts[type],
+      registered: registeredCounts[type],
+      difference: actualCounts[type] - registeredCounts[type],
+    }));
+
+  // =========================================================
+  // صحة التمام
+  // =========================================================
+
+  const isTmamValid =
+    actualTotalCount === registeredTotalCount &&
+    actualInsideCount === registeredInsideCount &&
+    actualOutsideCount === registeredOutsideCount &&
+    categoryDifferences.length === 0 &&
+    countDifferences.length === 0 &&
+    duplicateStatusErrors.length === 0;
+
+  // =========================================================
+  // حفظ التمام
+  // =========================================================
 
   const handleSavePeople = () => {
     if (isSaving) return;
@@ -177,35 +458,108 @@ const Tmam = () => {
     setIsSaving(true);
 
     try {
-      // --------------------------------------
-      // Check العدد
-      // --------------------------------------
+      // -------------------------------------------------------
+      // 1 - القوة الكلية
+      // -------------------------------------------------------
 
-      if (actualOutsideCount !== registeredOutsideCount) {
-        const difference = Math.abs(outsideDifference);
-
-        if (actualOutsideCount > registeredOutsideCount) {
-          toast.error(
-            `لا يمكن الحفظ: عدد الخارج الفعلي ${actualOutsideCount} بينما المكتوب في التمام ${registeredOutsideCount} — يوجد ${difference} شخص زائد`,
-            {
-              duration: 5000,
-            },
-          );
-        } else {
-          toast.error(
-            `لا يمكن الحفظ: عدد الخارج الفعلي ${actualOutsideCount} بينما المكتوب في التمام ${registeredOutsideCount} — يوجد ${difference} شخص ناقص`,
-            {
-              duration: 5000,
-            },
-          );
-        }
+      if (actualTotalCount !== registeredTotalCount) {
+        toast.error(
+          `لا يمكن الحفظ: القوة الفعلية ${actualTotalCount} بينما القوة المكتوبة ${registeredTotalCount}`,
+          {
+            duration: 6000,
+          },
+        );
 
         return;
       }
 
-      // --------------------------------------
-      // العدد مطابق
-      // --------------------------------------
+      // -------------------------------------------------------
+      // 2 - الموجود
+      // -------------------------------------------------------
+
+      if (actualInsideCount !== registeredInsideCount) {
+        toast.error(
+          `لا يمكن الحفظ: الموجود الفعلي ${actualInsideCount} بينما المكتوب ${registeredInsideCount}`,
+          {
+            duration: 6000,
+          },
+        );
+
+        return;
+      }
+
+      // -------------------------------------------------------
+      // 3 - الخارج
+      // -------------------------------------------------------
+
+      if (actualOutsideCount !== registeredOutsideCount) {
+        toast.error(
+          `لا يمكن الحفظ: الخارج الفعلي ${actualOutsideCount} بينما الخارج المكتوب ${registeredOutsideCount}`,
+          {
+            duration: 6000,
+          },
+        );
+
+        return;
+      }
+
+      // -------------------------------------------------------
+      // 4 - الفئات
+      // -------------------------------------------------------
+
+      if (categoryDifferences.length > 0) {
+        const difference = categoryDifferences[0];
+
+        toast.error(
+          `لا يمكن الحفظ: ${difference.label} غير مطابق — الموجود الفعلي ${difference.actual.inside} مقابل ${difference.registered.inside} مكتوب — الخارج الفعلي ${difference.actual.outside} مقابل ${difference.registered.outside} مكتوب`,
+          {
+            duration: 7000,
+          },
+        );
+
+        return;
+      }
+
+      // -------------------------------------------------------
+      // 5 - الحالات
+      // -------------------------------------------------------
+
+      if (countDifferences.length > 0) {
+        const difference = countDifferences[0];
+
+        const direction =
+          difference.actual > difference.registered ? "زيادة" : "نقص";
+
+        toast.error(
+          `لا يمكن الحفظ: ${difference.type} غير مطابق — المكتوب ${difference.registered} والفعلي ${difference.actual} (${direction})`,
+          {
+            duration: 7000,
+          },
+        );
+
+        return;
+      }
+
+      // -------------------------------------------------------
+      // 6 - الشخص في أكثر من حالة
+      // -------------------------------------------------------
+
+      if (duplicateStatusErrors.length > 0) {
+        const duplicate = duplicateStatusErrors[0];
+
+        toast.error(
+          `لا يمكن الحفظ: ${duplicate.name} (${duplicate.rank}) مسجل في أكثر من حالة: ${duplicate.statuses.join(" + ")}`,
+          {
+            duration: 7000,
+          },
+        );
+
+        return;
+      }
+
+      // -------------------------------------------------------
+      // 7 - الحفظ
+      // -------------------------------------------------------
 
       const people = {
         برا: outsidePeople,
@@ -215,7 +569,7 @@ const Tmam = () => {
       localStorage.setItem("people", JSON.stringify(people));
 
       toast.success(
-        `تم حفظ التمام بنجاح — الخارج ${actualOutsideCount} شخص والموجود ${insidePeople.length} شخص`,
+        `تم حفظ التمام بنجاح — القوة ${actualTotalCount} — الخارج ${actualOutsideCount} — الموجود ${actualInsideCount}`,
         {
           duration: 5000,
         },
@@ -224,6 +578,10 @@ const Tmam = () => {
       setIsSaving(false);
     }
   };
+
+  // =========================================================
+  // Styles
+  // =========================================================
 
   const headerCellSx = {
     backgroundColor: "rgba(6, 182, 212, 0.15)",
@@ -256,6 +614,10 @@ const Tmam = () => {
     boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
   };
 
+  // =========================================================
+  // عنوان القسم
+  // =========================================================
+
   const sectionTitle = (title, icon) => (
     <div className="p-5 sm:p-6 border-b border-white/10 flex items-center justify-between">
       <h2 className="text-xl sm:text-3xl font-black text-cyan-300">{title}</h2>
@@ -264,12 +626,18 @@ const Tmam = () => {
     </div>
   );
 
+  // =========================================================
+  // التاريخ
+  // =========================================================
+
   const formatDate = (date) => {
     if (!date) return "-";
 
     const d = new Date(date);
 
-    if (Number.isNaN(d.getTime())) return "-";
+    if (Number.isNaN(d.getTime())) {
+      return "-";
+    }
 
     return d.toLocaleDateString("ar-EG", {
       day: "2-digit",
@@ -278,130 +646,59 @@ const Tmam = () => {
     });
   };
 
+  // =========================================================
+  // القيمة
+  // =========================================================
+
   const getValue = (value) => {
-    if (value === 0) return "0";
+    if (value === 0) {
+      return "0";
+    }
+
     return value || "-";
   };
 
+  // =========================================================
+  // نسبة الخارج
+  // =========================================================
+
   const calculatePercentage = (data) => {
-    const total = data["الموجود"] + data["الخارج"];
+    const total =
+      (Number(data["الموجود"]) || 0) + (Number(data["الخارج"]) || 0);
 
-    if (!total) return "0%";
+    if (!total) {
+      return "0%";
+    }
 
-    return `${Math.round((data["الخارج"] / total) * 100)}%`;
+    return `${Math.round(((Number(data["الخارج"]) || 0) / total) * 100)}%`;
   };
 
+  // =========================================================
+  // صف الملخص
+  // =========================================================
+
   const renderSummaryRow = (title, data) => {
-    const total = (data["الموجود"] || 0) + (data["الخارج"] || 0);
-
-    const unitName = localStorage.getItem("unitName");
-
-    const tmam = JSON.parse(localStorage.getItem("tmam") || "{}");
-    const listNames = JSON.parse(localStorage.getItem("listNames") || "[]");
-
-    const {
-      tmamOfficers = {},
-      tmamOtherRanks = {},
-      vacations = [],
-      sickLeaves = [],
-      hospitals = [],
-      missions = [],
-      bands = [],
-      outCenters = [],
-      outCountries = [],
-      absences = [],
-      prisons = [],
-    } = tmam;
-
-    // كل مصادر الأشخاص الموجودين خارج الوحدة
-    const outsideLists = [
-      vacations,
-      sickLeaves,
-      hospitals,
-      missions,
-      bands,
-      outCenters,
-      outCountries,
-      absences,
-      prisons,
-    ];
-
-    // تجميع كل بيانات الأشخاص الخارجين حسب personId
-    const outsidePeopleMap = new Map();
-
-    outsideLists.forEach((list) => {
-      list.forEach((item) => {
-        if (!item?.personId) return;
-
-        if (!outsidePeopleMap.has(item.personId)) {
-          outsidePeopleMap.set(item.personId, {
-            id: item.personId,
-            name: item.name,
-            rank: item.rank,
-            statuses: [],
-          });
-        }
-
-        const person = outsidePeopleMap.get(item.personId);
-
-        person.statuses.push({
-          ...item,
-        });
-      });
-    });
-
-    // الأشخاص الخارجون
-    const outsidePeople = Array.from(outsidePeopleMap.values());
-
-    // IDs الأشخاص الخارجين
-    const outsideIds = new Set(outsidePeople.map((person) => person.id));
-
-    // الأشخاص الموجودون
-    const insidePeople = listNames
-      .filter((person) => !outsideIds.has(person.id))
-      .map((person) => ({
-        ...person,
-      }));
-
-    // العدد الحقيقي
-    const actualOutsideCount = outsidePeople.length;
-
-    // العدد المسجل في التمام
-    const registeredOutsideCount =
-      (tmamOfficers["الخارج"] || 0) + (tmamOtherRanks["الخارج"] || 0);
-
-    // العدد الكلي
-    const totalPeople =
-      (tmamOfficers["الموجود"] || 0) +
-      (tmamOfficers["الخارج"] || 0) +
-      (tmamOtherRanks["الموجود"] || 0) +
-      (tmamOtherRanks["الخارج"] || 0);
-
-    // النتيجة النهائية
-    const people = {
-      outSide: outsidePeople,
-      inSide: insidePeople,
-    };
-    console.log("الناس:", people);
-    console.log("برا:", outsidePeople);
-    console.log("موجود:", insidePeople);
+    const registered = getRegisteredCategory(data);
 
     return (
       <TableRow hover>
         {[
           title,
-          total,
-          data["الموجود"],
-          data["الخارج"],
+          registered.total,
+          registered.inside,
+          registered.outside,
           data["إجازة"],
           data["إجازة مرضية"],
-          data["فرقة"],
+          data["الفرقة"],
           data["مأمورية"],
           data["سجن"],
           data["غياب"],
           data["خارج البلاد"],
           data["خارج التمركز"],
-          calculatePercentage(data),
+          calculatePercentage({
+            الموجود: registered.inside,
+            الخارج: registered.outside,
+          }),
         ].map((item, index) => (
           <TableCell key={index} sx={bodyCellSx}>
             {getValue(item)}
@@ -411,30 +708,66 @@ const Tmam = () => {
     );
   };
 
+  // =========================================================
+  // Headers
+  // =========================================================
+
+  const summaryHeaders = [
+    "البيان",
+    "القوة",
+    "موجود",
+    "خارج",
+    "أجازة",
+    "أجازة مرضية",
+    "فرقة",
+    "مأمورية",
+    "سجن",
+    "غياب",
+    "خ البلاد",
+    "م تد خارجى",
+    "نسبة الخوارج",
+  ];
+
+  // =========================================================
+  // Render
+  // =========================================================
+
   return (
     <div className="min-h-screen bg-linear-to-br from-cyan-900 via-slate-900 to-black text-white py-6 sm:py-10 px-3 sm:px-5">
       <div className="max-w-7xl mx-auto">
-        {/* ================= Header ================= */}
+        {/* Header */}
+
         <div className="bg-white/10 rounded-3xl shadow-2xl p-5 sm:p-8 backdrop-blur border border-white/10">
           <div className="flex items-center justify-between gap-4">
             <Button
               variant="outlined"
               component={Link}
               to="/tmam"
-              startIcon={<ArrowBack sx={{ fontSize: 20 }} />}
+              startIcon={
+                <ArrowBack
+                  sx={{
+                    fontSize: 20,
+                  }}
+                />
+              }
               sx={{
                 color: "#e2e8f0",
                 borderColor: "rgba(255,255,255,0.25)",
                 bgcolor: "rgba(15,23,42,0.4)",
                 borderRadius: "12px",
-                px: { xs: 1.5, sm: 2.5 },
+                px: {
+                  xs: 1.5,
+                  sm: 2.5,
+                },
                 py: 1,
-                minWidth: { xs: 45, sm: "auto" },
+                minWidth: {
+                  xs: 45,
+                  sm: "auto",
+                },
                 fontWeight: "bold",
                 textTransform: "none",
                 flexShrink: 0,
                 transition: "all 0.2s ease",
-
                 "&:hover": {
                   bgcolor: "rgba(51,65,85,0.6)",
                   borderColor: "#22d3ee",
@@ -449,7 +782,10 @@ const Tmam = () => {
             <div className="flex items-center justify-center gap-3 flex-1 min-w-0">
               <CalendarMonth
                 sx={{
-                  fontSize: { xs: 30, sm: 42 },
+                  fontSize: {
+                    xs: 30,
+                    sm: 42,
+                  },
                   color: "#67e8f9",
                   flexShrink: 0,
                 }}
@@ -470,80 +806,160 @@ const Tmam = () => {
           </div>
         </div>
 
-        {/* ================= Buttons ================= */}
+        {/* Buttons */}
+
         <ButtonsTmam />
 
         <div className="flex flex-col gap-6 mt-6">
-          {/* ================= تمام القادة ================= */}
-          {/* <section dir="rtl" style={sectionSx}>
-            {sectionTitle(
-              "تمام القادة",
-              <Visibility
-                sx={{
-                  color: "#67e8f9",
-                  fontSize: { xs: 25, sm: 32 },
-                }}
-              />,
-            )}
+          {/* =====================================================
+              مراجعة التمام
+          ===================================================== */}
 
-            <TableContainer sx={{ overflowX: "auto" }}>
-              <Table sx={{ minWidth: 1100 }}>
-                <TableHead>
-                  <TableRow>
-                    {[
-                      "القائد",
-                      "ر.ع",
-                      "قا ك 1",
-                      "ر.ع 1",
-                      "قا ك 2",
-                      "ر.ع 2",
-                      "قا ك 3",
-                      "ر.ع 3",
-                    ].map((item) => (
-                      <TableCell key={item} colSpan={2} sx={headerCellSx}>
-                        {item}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+          <div
+            className={`rounded-2xl p-5 shadow-2xl border ${
+              isTmamValid
+                ? "bg-green-500/5 border-green-400/20"
+                : "bg-red-500/5 border-red-400/20"
+            }`}
+          >
+            <div className="text-center sm:text-right">
+              <h2 className="text-xl sm:text-2xl font-black text-cyan-300">
+                مراجعة التمام
+              </h2>
 
-                  <TableRow>
-                    {Array.from({ length: 8 }).map((_, index) => (
-                      <TableCell key={index} colSpan={2} sx={headerCellSx}>
-                        التمام
-                      </TableCell>
-                    ))}
-                  </TableRow>
+              <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-4">
+                <span className="px-4 py-2 rounded-xl bg-cyan-500/10 border border-cyan-400/20 text-cyan-200 font-bold">
+                  القوة المكتوبة: {registeredTotalCount}
+                </span>
 
-                  <TableRow>
-                    {Array.from({ length: 8 }).flatMap((_, index) => [
-                      <TableCell key={`${index}-to`} sx={headerCellSx}>
-                        إلى
-                      </TableCell>,
+                <span
+                  className={`px-4 py-2 rounded-xl border font-bold ${
+                    actualTotalCount === registeredTotalCount
+                      ? "bg-green-500/10 border-green-400/30 text-green-300"
+                      : "bg-red-500/10 border-red-400/30 text-red-300"
+                  }`}
+                >
+                  القوة الفعلية: {actualTotalCount}
+                </span>
 
-                      <TableCell key={`${index}-from`} sx={headerCellSx}>
-                        من
-                      </TableCell>,
-                    ])}
-                  </TableRow>
-                </TableHead>
+                <span
+                  className={`px-4 py-2 rounded-xl border font-bold ${
+                    actualInsideCount === registeredInsideCount
+                      ? "bg-green-500/10 border-green-400/30 text-green-300"
+                      : "bg-red-500/10 border-red-400/30 text-red-300"
+                  }`}
+                >
+                  الموجود: {actualInsideCount} / {registeredInsideCount}
+                </span>
 
-                <TableBody>
-                  <TableRow>
-                    {Array.from({ length: 8 }).flatMap((_, index) => [
-                      <TableCell key={`${index}-to`} sx={bodyCellSx}>
-                        -
-                      </TableCell>,
+                <span
+                  className={`px-4 py-2 rounded-xl border font-bold ${
+                    actualOutsideCount === registeredOutsideCount
+                      ? "bg-green-500/10 border-green-400/30 text-green-300"
+                      : "bg-red-500/10 border-red-400/30 text-red-300"
+                  }`}
+                >
+                  الخارج: {actualOutsideCount} / {registeredOutsideCount}
+                </span>
+              </div>
 
-                      <TableCell key={`${index}-from`} sx={bodyCellSx}>
-                        5/3/2026
-                      </TableCell>,
-                    ])}
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </section> */}
-          {/* ================= تمام الضباط ================= */}
+              {/* الأخطاء */}
+
+              {!isTmamValid && (
+                <div className="mt-5 space-y-2">
+                  {categoryDifferences.map((difference) => (
+                    <div
+                      key={difference.category}
+                      className="text-red-300 font-bold text-sm bg-red-500/5 border border-red-400/10 rounded-xl p-3"
+                    >
+                      {difference.label}: الموجود الفعلي{" "}
+                      {difference.actual.inside} مقابل{" "}
+                      {difference.registered.inside} مكتوب — الخارج الفعلي{" "}
+                      {difference.actual.outside} مقابل{" "}
+                      {difference.registered.outside} مكتوب
+                    </div>
+                  ))}
+
+                  {countDifferences.map((difference) => (
+                    <div
+                      key={difference.type}
+                      className="text-red-300 font-bold text-sm bg-red-500/5 border border-red-400/10 rounded-xl p-3"
+                    >
+                      {difference.type}: الفعلي {difference.actual} — المكتوب{" "}
+                      {difference.registered}
+                    </div>
+                  ))}
+
+                  {duplicateStatusErrors.map((duplicate, index) => (
+                    <div
+                      key={`${duplicate.name}-${index}`}
+                      className="text-red-300 font-bold text-sm bg-red-500/5 border border-red-400/10 rounded-xl p-3"
+                    >
+                      {duplicate.name} ({duplicate.rank}) مسجل في أكثر من حالة:{" "}
+                      {duplicate.statuses.join(" + ")}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isTmamValid && (
+                <p className="mt-4 text-green-300 font-bold text-sm">
+                  جميع بيانات التمام مطابقة ويمكن الحفظ
+                </p>
+              )}
+            </div>
+
+            <Button
+              variant="contained"
+              onClick={handleSavePeople}
+              disabled={isSaving || !isTmamValid}
+              startIcon={
+                <Save
+                  sx={{
+                    fontSize: 22,
+                    ml: 1,
+                  }}
+                />
+              }
+              sx={{
+                direction: "rtl",
+                minWidth: {
+                  xs: "100%",
+                  sm: 220,
+                },
+                py: 1.6,
+                px: 4,
+                mt: 5,
+                borderRadius: "16px",
+                fontWeight: "900",
+                fontSize: "16px",
+                background: isTmamValid
+                  ? "linear-gradient(135deg, #06b6d4, #2563eb)"
+                  : "rgba(100,116,139,0.4)",
+                color: "#fff",
+                "&:hover": {
+                  background: isTmamValid
+                    ? "linear-gradient(135deg, #0891b2, #1d4ed8)"
+                    : "rgba(100,116,139,0.4)",
+                },
+                "&.Mui-disabled": {
+                  color: "rgba(255,255,255,0.45)",
+                  background: "rgba(100,116,139,0.25)",
+                },
+                "& .MuiButton-startIcon": {
+                  marginLeft: "10px",
+                  marginRight: 0,
+                },
+              }}
+            >
+              {isSaving ? "جاري الحفظ..." : "حفظ التمام"}
+            </Button>
+          </div>
+
+          {/* =====================================================
+              تمام الضباط
+          ===================================================== */}
+
           {Object.keys(tmamOfficers).length > 0 && (
             <section dir="rtl" style={sectionSx}>
               {sectionTitle(
@@ -551,30 +967,28 @@ const Tmam = () => {
                 <Person
                   sx={{
                     color: "#67e8f9",
-                    fontSize: { xs: 25, sm: 32 },
+                    fontSize: {
+                      xs: 25,
+                      sm: 32,
+                    },
                   }}
                 />,
               )}
 
-              <TableContainer sx={{ overflowX: "auto" }}>
-                <Table dir="rtl" sx={{ minWidth: 1200 }}>
+              <TableContainer
+                sx={{
+                  overflowX: "auto",
+                }}
+              >
+                <Table
+                  dir="rtl"
+                  sx={{
+                    minWidth: 1200,
+                  }}
+                >
                   <TableHead>
                     <TableRow>
-                      {[
-                        "البيان",
-                        "القوة",
-                        "موجود",
-                        "خارج",
-                        "أجازة",
-                        "أجازة مرضية",
-                        "فرقة",
-                        "مأمورية",
-                        "سجن",
-                        "غياب",
-                        "خ البلاد",
-                        "م تد خارجى",
-                        "نسبة الخوارج",
-                      ].map((item, index) => (
+                      {summaryHeaders.map((item, index) => (
                         <TableCell key={`${item}-${index}`} sx={headerCellSx}>
                           {item}
                         </TableCell>
@@ -589,38 +1003,40 @@ const Tmam = () => {
               </TableContainer>
             </section>
           )}
-          {/* ================= تمام الدرجات الأخرى ================= */}
-          {Object.keys(tmamOtherRanks).length > 0 && (
+
+          {/* =====================================================
+              تمام الصف ضباط
+          ===================================================== */}
+
+          {Object.keys(tmamNCOs).length > 0 && (
             <section dir="rtl" style={sectionSx}>
               {sectionTitle(
-                "تمام الدرجات الأخرى",
+                "تمام الصف ضباط",
                 <Groups
                   sx={{
                     color: "#67e8f9",
-                    fontSize: { xs: 25, sm: 32 },
+                    fontSize: {
+                      xs: 25,
+                      sm: 32,
+                    },
                   }}
                 />,
               )}
 
-              <TableContainer sx={{ overflowX: "auto" }}>
-                <Table dir="rtl" sx={{ minWidth: 1200 }}>
+              <TableContainer
+                sx={{
+                  overflowX: "auto",
+                }}
+              >
+                <Table
+                  dir="rtl"
+                  sx={{
+                    minWidth: 1200,
+                  }}
+                >
                   <TableHead>
                     <TableRow>
-                      {[
-                        "البيان",
-                        "القوة",
-                        "موجود",
-                        "خارج",
-                        "أجازة",
-                        "أجازة مرضية",
-                        "فرقة",
-                        "مأمورية",
-                        "سجن",
-                        "غياب",
-                        "خ البلاد",
-                        "م تد خارجى",
-                        "نسبة الخوارج",
-                      ].map((item, index) => (
+                      {summaryHeaders.map((item, index) => (
                         <TableCell key={`${item}-${index}`} sx={headerCellSx}>
                           {item}
                         </TableCell>
@@ -629,13 +1045,65 @@ const Tmam = () => {
                   </TableHead>
 
                   <TableBody>
-                    {renderSummaryRow("الدرجات الأخرى", tmamOtherRanks)}
+                    {renderSummaryRow("الصف ضباط", tmamNCOs)}
                   </TableBody>
                 </Table>
               </TableContainer>
             </section>
           )}
-          {/* ================= الإجازات ================= */}
+
+          {/* =====================================================
+              تمام الجنود
+          ===================================================== */}
+
+          {Object.keys(tmamSoldiers).length > 0 && (
+            <section dir="rtl" style={sectionSx}>
+              {sectionTitle(
+                "تمام الجنود",
+                <Groups
+                  sx={{
+                    color: "#67e8f9",
+                    fontSize: {
+                      xs: 25,
+                      sm: 32,
+                    },
+                  }}
+                />,
+              )}
+
+              <TableContainer
+                sx={{
+                  overflowX: "auto",
+                }}
+              >
+                <Table
+                  dir="rtl"
+                  sx={{
+                    minWidth: 1200,
+                  }}
+                >
+                  <TableHead>
+                    <TableRow>
+                      {summaryHeaders.map((item, index) => (
+                        <TableCell key={`${item}-${index}`} sx={headerCellSx}>
+                          {item}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+
+                  <TableBody>
+                    {renderSummaryRow("الجنود", tmamSoldiers)}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </section>
+          )}
+
+          {/* =====================================================
+              الإجازات
+          ===================================================== */}
+
           {vacations.length > 0 && (
             <section dir="rtl" style={sectionSx}>
               {sectionTitle(
@@ -643,13 +1111,25 @@ const Tmam = () => {
                 <EventAvailable
                   sx={{
                     color: "#67e8f9",
-                    fontSize: { xs: 25, sm: 32 },
+                    fontSize: {
+                      xs: 25,
+                      sm: 32,
+                    },
                   }}
                 />,
               )}
 
-              <TableContainer sx={{ overflowX: "auto" }}>
-                <Table dir="rtl" sx={{ minWidth: 800 }}>
+              <TableContainer
+                sx={{
+                  overflowX: "auto",
+                }}
+              >
+                <Table
+                  dir="rtl"
+                  sx={{
+                    minWidth: 800,
+                  }}
+                >
                   <TableHead>
                     <TableRow>
                       {[
@@ -669,7 +1149,10 @@ const Tmam = () => {
 
                   <TableBody>
                     {vacations.map((item, index) => (
-                      <TableRow hover key={item.id}>
+                      <TableRow
+                        hover
+                        key={item.id ?? `${item.personId}-${index}`}
+                      >
                         <TableCell sx={bodyCellSx}>{index + 1}</TableCell>
 
                         <TableCell sx={bodyCellSx}>{item.rank}</TableCell>
@@ -692,7 +1175,11 @@ const Tmam = () => {
               </TableContainer>
             </section>
           )}
-          {/* ================= إجازات مرضية ================= */}
+
+          {/* =====================================================
+              إجازات مرضية
+          ===================================================== */}
+
           {sickLeaves.length > 0 && (
             <section dir="rtl" style={sectionSx}>
               {sectionTitle(
@@ -700,13 +1187,25 @@ const Tmam = () => {
                 <LocalHospital
                   sx={{
                     color: "#67e8f9",
-                    fontSize: { xs: 25, sm: 32 },
+                    fontSize: {
+                      xs: 25,
+                      sm: 32,
+                    },
                   }}
                 />,
               )}
 
-              <TableContainer sx={{ overflowX: "auto" }}>
-                <Table dir="rtl" sx={{ minWidth: 850 }}>
+              <TableContainer
+                sx={{
+                  overflowX: "auto",
+                }}
+              >
+                <Table
+                  dir="rtl"
+                  sx={{
+                    minWidth: 850,
+                  }}
+                >
                   <TableHead>
                     <TableRow>
                       {[
@@ -727,7 +1226,10 @@ const Tmam = () => {
 
                   <TableBody>
                     {sickLeaves.map((item, index) => (
-                      <TableRow hover key={item.id}>
+                      <TableRow
+                        hover
+                        key={item.id ?? `${item.personId}-${index}`}
+                      >
                         <TableCell sx={bodyCellSx}>{index + 1}</TableCell>
 
                         <TableCell sx={bodyCellSx}>{item.rank}</TableCell>
@@ -754,7 +1256,11 @@ const Tmam = () => {
               </TableContainer>
             </section>
           )}
-          {/* ================= المستشفى ================= */}
+
+          {/* =====================================================
+              المستشفى
+          ===================================================== */}
+
           {hospitals.length > 0 && (
             <section dir="rtl" style={sectionSx}>
               {sectionTitle(
@@ -762,13 +1268,25 @@ const Tmam = () => {
                 <LocalHospital
                   sx={{
                     color: "#67e8f9",
-                    fontSize: { xs: 25, sm: 32 },
+                    fontSize: {
+                      xs: 25,
+                      sm: 32,
+                    },
                   }}
                 />,
               )}
 
-              <TableContainer sx={{ overflowX: "auto" }}>
-                <Table dir="rtl" sx={{ minWidth: 900 }}>
+              <TableContainer
+                sx={{
+                  overflowX: "auto",
+                }}
+              >
+                <Table
+                  dir="rtl"
+                  sx={{
+                    minWidth: 900,
+                  }}
+                >
                   <TableHead>
                     <TableRow>
                       {[
@@ -789,7 +1307,10 @@ const Tmam = () => {
 
                   <TableBody>
                     {hospitals.map((item, index) => (
-                      <TableRow hover key={item.id}>
+                      <TableRow
+                        hover
+                        key={item.id ?? `${item.personId}-${index}`}
+                      >
                         <TableCell sx={bodyCellSx}>{index + 1}</TableCell>
 
                         <TableCell sx={bodyCellSx}>{item.rank}</TableCell>
@@ -814,7 +1335,11 @@ const Tmam = () => {
               </TableContainer>
             </section>
           )}
-          {/* ================= المأموريات ================= */}
+
+          {/* =====================================================
+              المأموريات
+          ===================================================== */}
+
           {missions.length > 0 && (
             <section dir="rtl" style={sectionSx}>
               {sectionTitle(
@@ -822,13 +1347,25 @@ const Tmam = () => {
                 <Assignment
                   sx={{
                     color: "#67e8f9",
-                    fontSize: { xs: 25, sm: 32 },
+                    fontSize: {
+                      xs: 25,
+                      sm: 32,
+                    },
                   }}
                 />,
               )}
 
-              <TableContainer sx={{ overflowX: "auto" }}>
-                <Table dir="rtl" sx={{ minWidth: 1000 }}>
+              <TableContainer
+                sx={{
+                  overflowX: "auto",
+                }}
+              >
+                <Table
+                  dir="rtl"
+                  sx={{
+                    minWidth: 1000,
+                  }}
+                >
                   <TableHead>
                     <TableRow>
                       {[
@@ -849,7 +1386,10 @@ const Tmam = () => {
 
                   <TableBody>
                     {missions.map((item, index) => (
-                      <TableRow hover key={item.id}>
+                      <TableRow
+                        hover
+                        key={item.id ?? `${item.personId}-${index}`}
+                      >
                         <TableCell sx={bodyCellSx}>{index + 1}</TableCell>
 
                         <TableCell sx={bodyCellSx}>{item.rank}</TableCell>
@@ -876,7 +1416,11 @@ const Tmam = () => {
               </TableContainer>
             </section>
           )}
-          {/* ================= الفرقة ================= */}
+
+          {/* =====================================================
+              الفرقة
+          ===================================================== */}
+
           {bands.length > 0 && (
             <section dir="rtl" style={sectionSx}>
               {sectionTitle(
@@ -884,13 +1428,25 @@ const Tmam = () => {
                 <School
                   sx={{
                     color: "#67e8f9",
-                    fontSize: { xs: 25, sm: 32 },
+                    fontSize: {
+                      xs: 25,
+                      sm: 32,
+                    },
                   }}
                 />,
               )}
 
-              <TableContainer sx={{ overflowX: "auto" }}>
-                <Table dir="rtl" sx={{ minWidth: 850 }}>
+              <TableContainer
+                sx={{
+                  overflowX: "auto",
+                }}
+              >
+                <Table
+                  dir="rtl"
+                  sx={{
+                    minWidth: 850,
+                  }}
+                >
                   <TableHead>
                     <TableRow>
                       {[
@@ -911,7 +1467,10 @@ const Tmam = () => {
 
                   <TableBody>
                     {bands.map((item, index) => (
-                      <TableRow hover key={item.id}>
+                      <TableRow
+                        hover
+                        key={item.id ?? `${item.personId}-${index}`}
+                      >
                         <TableCell sx={bodyCellSx}>{index + 1}</TableCell>
 
                         <TableCell sx={bodyCellSx}>{item.rank}</TableCell>
@@ -936,7 +1495,11 @@ const Tmam = () => {
               </TableContainer>
             </section>
           )}
-          {/* ================= خارج التمركز ================= */}
+
+          {/* =====================================================
+              خارج التمركز
+          ===================================================== */}
+
           {outCenters.length > 0 && (
             <section dir="rtl" style={sectionSx}>
               {sectionTitle(
@@ -944,13 +1507,25 @@ const Tmam = () => {
                 <Flight
                   sx={{
                     color: "#67e8f9",
-                    fontSize: { xs: 25, sm: 32 },
+                    fontSize: {
+                      xs: 25,
+                      sm: 32,
+                    },
                   }}
                 />,
               )}
 
-              <TableContainer sx={{ overflowX: "auto" }}>
-                <Table dir="rtl" sx={{ minWidth: 950 }}>
+              <TableContainer
+                sx={{
+                  overflowX: "auto",
+                }}
+              >
+                <Table
+                  dir="rtl"
+                  sx={{
+                    minWidth: 950,
+                  }}
+                >
                   <TableHead>
                     <TableRow>
                       {[
@@ -971,7 +1546,10 @@ const Tmam = () => {
 
                   <TableBody>
                     {outCenters.map((item, index) => (
-                      <TableRow hover key={item.id}>
+                      <TableRow
+                        hover
+                        key={item.id ?? `${item.personId}-${index}`}
+                      >
                         <TableCell sx={bodyCellSx}>{index + 1}</TableCell>
 
                         <TableCell sx={bodyCellSx}>{item.rank}</TableCell>
@@ -998,7 +1576,11 @@ const Tmam = () => {
               </TableContainer>
             </section>
           )}
-          {/* ================= خارج البلاد ================= */}
+
+          {/* =====================================================
+              خارج البلاد
+          ===================================================== */}
+
           {outCountries.length > 0 && (
             <section dir="rtl" style={sectionSx}>
               {sectionTitle(
@@ -1006,13 +1588,25 @@ const Tmam = () => {
                 <Flight
                   sx={{
                     color: "#67e8f9",
-                    fontSize: { xs: 25, sm: 32 },
+                    fontSize: {
+                      xs: 25,
+                      sm: 32,
+                    },
                   }}
                 />,
               )}
 
-              <TableContainer sx={{ overflowX: "auto" }}>
-                <Table dir="rtl" sx={{ minWidth: 950 }}>
+              <TableContainer
+                sx={{
+                  overflowX: "auto",
+                }}
+              >
+                <Table
+                  dir="rtl"
+                  sx={{
+                    minWidth: 950,
+                  }}
+                >
                   <TableHead>
                     <TableRow>
                       {[
@@ -1033,7 +1627,10 @@ const Tmam = () => {
 
                   <TableBody>
                     {outCountries.map((item, index) => (
-                      <TableRow hover key={item.id}>
+                      <TableRow
+                        hover
+                        key={item.id ?? `${item.personId}-${index}`}
+                      >
                         <TableCell sx={bodyCellSx}>{index + 1}</TableCell>
 
                         <TableCell sx={bodyCellSx}>{item.rank}</TableCell>
@@ -1058,7 +1655,11 @@ const Tmam = () => {
               </TableContainer>
             </section>
           )}
-          {/* ================= غياب ================= */}
+
+          {/* =====================================================
+              غياب
+          ===================================================== */}
+
           {absences.length > 0 && (
             <section dir="rtl" style={sectionSx}>
               {sectionTitle(
@@ -1066,13 +1667,25 @@ const Tmam = () => {
                 <PersonOff
                   sx={{
                     color: "#67e8f9",
-                    fontSize: { xs: 25, sm: 32 },
+                    fontSize: {
+                      xs: 25,
+                      sm: 32,
+                    },
                   }}
                 />,
               )}
 
-              <TableContainer sx={{ overflowX: "auto" }}>
-                <Table dir="rtl" sx={{ minWidth: 900 }}>
+              <TableContainer
+                sx={{
+                  overflowX: "auto",
+                }}
+              >
+                <Table
+                  dir="rtl"
+                  sx={{
+                    minWidth: 900,
+                  }}
+                >
                   <TableHead>
                     <TableRow>
                       {[
@@ -1093,7 +1706,10 @@ const Tmam = () => {
 
                   <TableBody>
                     {absences.map((item, index) => (
-                      <TableRow hover key={item.id}>
+                      <TableRow
+                        hover
+                        key={item.id ?? `${item.personId}-${index}`}
+                      >
                         <TableCell sx={bodyCellSx}>{index + 1}</TableCell>
 
                         <TableCell sx={bodyCellSx}>{item.rank}</TableCell>
@@ -1122,7 +1738,11 @@ const Tmam = () => {
               </TableContainer>
             </section>
           )}
-          {/* ================= سجن ================= */}
+
+          {/* =====================================================
+              سجن
+          ===================================================== */}
+
           {prisons.length > 0 && (
             <section dir="rtl" style={sectionSx}>
               {sectionTitle(
@@ -1130,13 +1750,25 @@ const Tmam = () => {
                 <Lock
                   sx={{
                     color: "#67e8f9",
-                    fontSize: { xs: 25, sm: 32 },
+                    fontSize: {
+                      xs: 25,
+                      sm: 32,
+                    },
                   }}
                 />,
               )}
 
-              <TableContainer sx={{ overflowX: "auto" }}>
-                <Table dir="rtl" sx={{ minWidth: 900 }}>
+              <TableContainer
+                sx={{
+                  overflowX: "auto",
+                }}
+              >
+                <Table
+                  dir="rtl"
+                  sx={{
+                    minWidth: 900,
+                  }}
+                >
                   <TableHead>
                     <TableRow>
                       {[
@@ -1157,7 +1789,10 @@ const Tmam = () => {
 
                   <TableBody>
                     {prisons.map((item, index) => (
-                      <TableRow hover key={item.id}>
+                      <TableRow
+                        hover
+                        key={item.id ?? `${item.personId}-${index}`}
+                      >
                         <TableCell sx={bodyCellSx}>{index + 1}</TableCell>
 
                         <TableCell sx={bodyCellSx}>{item.rank}</TableCell>
@@ -1186,111 +1821,6 @@ const Tmam = () => {
               </TableContainer>
             </section>
           )}
-          {/* ================= حفظ التمام ================= */}
-
-          <div
-            dir="rtl"
-            className="
-            mt-8
-            bg-white/10
-            rounded-3xl
-            shadow-2xl
-            p-5
-            sm:p-6
-            backdrop-blur
-            border
-            border-white/10
-          "
-          >
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-5">
-              <div className="text-center sm:text-right">
-                <h2 className="text-xl sm:text-2xl font-black text-cyan-300">
-                  مراجعة التمام
-                </h2>
-
-                <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-3">
-                  <span className="px-4 py-2 rounded-xl bg-cyan-500/10 border border-cyan-400/20 text-cyan-200 font-bold">
-                    الخارج المكتوب: {registeredOutsideCount}
-                  </span>
-
-                  <span
-                    className={`px-4 py-2 rounded-xl border font-bold ${
-                      actualOutsideCount === registeredOutsideCount
-                        ? "bg-green-500/10 border-green-400/30 text-green-300"
-                        : "bg-red-500/10 border-red-400/30 text-red-300"
-                    }`}
-                  >
-                    الخارج الفعلي: {actualOutsideCount}
-                  </span>
-                </div>
-
-                {actualOutsideCount !== registeredOutsideCount && (
-                  <p className="mt-3 text-red-300 font-bold text-sm">
-                    يوجد اختلاف في عدد الخارج، لذلك لن يتم الحفظ.
-                  </p>
-                )}
-
-                {actualOutsideCount === registeredOutsideCount && (
-                  <p className="mt-3 text-green-300 font-bold text-sm">
-                    العدد مطابق ويمكن حفظ التمام.
-                  </p>
-                )}
-              </div>
-
-              <Button
-                variant="contained"
-                onClick={handleSavePeople}
-                disabled={
-                  isSaving || actualOutsideCount !== registeredOutsideCount
-                }
-                startIcon={
-                  <Save
-                    sx={{
-                      fontSize: 22,
-                      ml: 1,
-                    }}
-                  />
-                }
-                sx={{
-                  direction: "rtl",
-
-                  minWidth: { xs: "100%", sm: 220 },
-                  py: 1.6,
-                  px: 4,
-
-                  borderRadius: "16px",
-                  fontWeight: "900",
-                  fontSize: "16px",
-
-                  background:
-                    actualOutsideCount === registeredOutsideCount
-                      ? "linear-gradient(135deg, #06b6d4, #2563eb)"
-                      : "rgba(100,116,139,0.4)",
-
-                  color: "#fff",
-
-                  "&:hover": {
-                    background:
-                      actualOutsideCount === registeredOutsideCount
-                        ? "linear-gradient(135deg, #0891b2, #1d4ed8)"
-                        : "rgba(100,116,139,0.4)",
-                  },
-
-                  "&.Mui-disabled": {
-                    color: "rgba(255,255,255,0.45)",
-                    background: "rgba(100,116,139,0.25)",
-                  },
-
-                  "& .MuiButton-startIcon": {
-                    marginLeft: "10px",
-                    marginRight: 0,
-                  },
-                }}
-              >
-                {isSaving ? "جاري الحفظ..." : "حفظ التمام"}
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

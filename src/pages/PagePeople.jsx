@@ -221,7 +221,7 @@ function getStatusTitle(type) {
    STATUS COLUMNS
 ========================================================= */
 
-function getStatusColumns(type) {
+function getStatusColumns(type, rankLabel = "الرتبة") {
   const common = [
     {
       key: "number",
@@ -230,7 +230,7 @@ function getStatusColumns(type) {
     },
     {
       key: "rank",
-      label: "الرتبة / الدرجة",
+      label: rankLabel,
       className: "cell-rank",
     },
     {
@@ -819,8 +819,13 @@ function SummaryTable({ title, existingPeople, outsidePeople }) {
 /* =========================================================
    EXISTING TABLE - 4 PEOPLE
 ========================================================= */
-
-function PeopleDoubleTable({ title, people, days, onDaysChange }) {
+function PeopleDoubleTable({
+  title,
+  people,
+  days,
+  onDaysChange,
+  rankLabel = "الرتبة",
+}) {
   const rows = [];
 
   for (let index = 0; index < people.length; index += 4) {
@@ -840,22 +845,22 @@ function PeopleDoubleTable({ title, people, days, onDaysChange }) {
         <thead>
           <tr>
             <th>م</th>
-            <th>الرتبة</th>
+            <th>{rankLabel}</th>
             <th>الاسم</th>
             <th>عدد الأيام</th>
 
             <th>م</th>
-            <th>الرتبة</th>
+            <th>{rankLabel}</th>
             <th>الاسم</th>
             <th>عدد الأيام</th>
 
             <th>م</th>
-            <th>الرتبة</th>
+            <th>{rankLabel}</th>
             <th>الاسم</th>
             <th>عدد الأيام</th>
 
             <th>م</th>
-            <th>الرتبة</th>
+            <th>{rankLabel}</th>
             <th>الاسم</th>
             <th>عدد الأيام</th>
           </tr>
@@ -966,8 +971,8 @@ function getStatusRows(people, type) {
    OUTSIDE CELLS
 ========================================================= */
 
-function StatusCells({ data, number, type }) {
-  const columns = getStatusColumns(type);
+function StatusCells({ data, number, type, rankLabel }) {
+  const columns = getStatusColumns(type, rankLabel);
 
   if (!data) {
     return (
@@ -998,14 +1003,14 @@ function StatusCells({ data, number, type }) {
    OUTSIDE TABLE
 ========================================================= */
 
-function OutsideStatusTable({ title, type, people }) {
+function OutsideStatusTable({ title, type, people, rankLabel = "الرتبة" }) {
   const statusRows = getStatusRows(people, type);
 
   if (statusRows.length === 0) {
     return null;
   }
 
-  const columns = getStatusColumns(type);
+  const columns = getStatusColumns(type, rankLabel);
 
   const rows = [];
 
@@ -1047,9 +1052,15 @@ function OutsideStatusTable({ title, type, people }) {
                 data={row.right}
                 number={index * 2 + 1}
                 type={type}
+                rankLabel={rankLabel}
               />
 
-              <StatusCells data={row.left} number={index * 2 + 2} type={type} />
+              <StatusCells
+                data={row.left}
+                number={index * 2 + 2}
+                type={type}
+                rankLabel={rankLabel}
+              />
             </tr>
           ))}
         </tbody>
@@ -1995,6 +2006,7 @@ export default function PagePeople() {
           people={report.موجود.officers}
           days={days}
           onDaysChange={handleDaysChange}
+          rankLabel="الرتبة"
         />
 
         <OutsideCategory title="الضباط" people={report.برا.officers} />
@@ -2012,6 +2024,7 @@ export default function PagePeople() {
           people={report.موجود.nco}
           days={days}
           onDaysChange={handleDaysChange}
+          rankLabel="الدرجة"
         />
 
         <OutsideCategory title="صف الضباط" people={report.برا.nco} />
@@ -2029,6 +2042,7 @@ export default function PagePeople() {
           people={report.موجود.soldiers}
           days={days}
           onDaysChange={handleDaysChange}
+          rankLabel="الدرجة"
         />
 
         <OutsideCategory title="الجنود" people={report.برا.soldiers} />
